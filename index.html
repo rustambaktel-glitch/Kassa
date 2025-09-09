@@ -18,7 +18,7 @@
     .toolbar { display:flex; gap:10px; align-items:center; margin:8px 0 4px; flex-wrap:wrap; }
     .ops { display:flex; gap:6px; justify-content:center; }
 
-    /* 🔹 Login (böyüdülmüş) */
+    /* Login (böyüdülmüş) */
     #login { text-align: center; margin-top: 60px; }
     #login h2 { margin-bottom: 16px; }
     #login input {
@@ -105,10 +105,10 @@
     import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
     import {
       getFirestore, collection, addDoc, updateDoc, deleteDoc,
-      doc, onSnapshot, serverTimestamp, query, orderBy, getDocs
+      doc, onSnapshot, serverTimestamp, query, orderBy, getDocs, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    // Firebase config (sənin dəyərlərin)
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
       authDomain: "kassa-11972.firebaseapp.com",
@@ -146,7 +146,9 @@
     // --- Login state & dinləyici ---
     let loggedIn = false;
     let unsubscribeLive = null;
-    let isEditing = false; // ⬅️ istifadəçi xananın içindədirsə, re-render etməyək
+    let isEditing = false;
+    let hasPendingSnapshot = false;
+    let latestDocs = []; // son snapshot-dakı sənədlər
 
     // Firestore üçün anonim auth
     try {
@@ -156,11 +158,16 @@
       setStatus("Auth Xəta: " + e.message);
     }
 
-    // Edit state: focus daxil/çıxış
+    // Edit state: fokus daxil/çıxış
     tbody.addEventListener('focusin', () => { isEditing = true; }, true);
     tbody.addEventListener('focusout', () => {
-      // kiçik gecikmə: blur tamamlansın, yazma bitsin
-      setTimeout(() => { isEditing = false; }, 80);
+      setTimeout(() => {
+        isEditing = false;
+        if (hasPendingSnapshot) {
+          renderFromDocs(latestDocs);
+          hasPendingSnapshot = false;
+        }
+      }, 80);
     }, true);
 
     // Lokal LOGIN
@@ -205,24 +212,13 @@
       const q = query(rowsCol, orderBy("createdAt","asc"));
       unsubscribeLive = onSnapshot(q, (snap) => {
         if (!loggedIn) return;
-        if (isEditing) return; // ⬅️ yazarkən DOM-u yeniləmə
-
-        tbody.innerHTML = "";
-        let total = 0;
-        let idx = 0;
-
-        snap.forEach((d) => {
-          const data = d.data();
-          const tr = createRow(d.id, data, idx);
-          tbody.appendChild(tr);
-
-          for (let i = 1; i <= 5; i++) {
-            total += Number(data["n"+i] ?? 0) || 0;
-          }
-          idx++;
-        });
-
-        umumiEl.textContent = fmt(total);
+        latestDocs = [];
+        snap.forEach(d => latestDocs.push({ id: d.id, data: d.data() }));
+        if (isEditing) {
+          hasPendingSnapshot = true; // yazarkən gələn snapshot-u saxla
+        } else {
+          renderFromDocs(latestDocs);
+        }
         setStatus("Firestore OK (real-time qoşuldu)");
       }, (err) => {
         setStatus("Firestore Xəta: " + err.message);
@@ -234,6 +230,27 @@
         unsubscribeLive();
         unsubscribeLive = null;
       }
+    }
+
+    async function fetchAndRender() {
+      const q = query(rowsCol, orderBy("createdAt","asc"));
+      const snap = await getDocs(q);
+      latestDocs = [];
+      snap.forEach(d => latestDocs.push({ id: d.id, data: d.data() }));
+      renderFromDocs(latestDocs);
+    }
+
+    function renderFromDocs(docs) {
+      tbody.innerHTML = "";
+      let total = 0;
+      let idx = 0;
+      docs.forEach(({id, data}) => {
+        const tr = createRow(id, data, idx);
+        tbody.appendChild(tr);
+        for (let i = 1; i <= 5; i++) total += Number(data["n"+i] ?? 0) || 0;
+        idx++;
+      });
+      umumiEl.textContent = fmt(total);
     }
 
     // Sətir qur (ONBLUR ilə yazma!)
@@ -252,10 +269,11 @@
       inpAcc.type = "text";
       inpAcc.placeholder = "Hesab adı";
       inpAcc.value = data.account || "";
-      inpAcc.onblur = () => {
+      inpAcc.onblur = async () => {
         if (!loggedIn) return;
-        updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" })
-          .then(() => { if (loggedIn) saveSnapshot(); });
+        await updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" });
+        await saveSnapshot();
+        await fetchAndRender(); // balans və görüntünü dərhal yenilə
       };
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
@@ -268,11 +286,12 @@
         inp.type = "number";
         inp.step = "any";
         inp.value = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
-        inp.onblur = () => {
+        inp.onblur = async () => {
           if (!loggedIn) return;
           const v = inp.value === "" ? null : Number(inp.value);
-          updateDoc(doc(db, "rows", docId), { ["n"+i]: v })
-            .then(() => { if (loggedIn) saveSnapshot(); });
+          await updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
+          await saveSnapshot();
+          await fetchAndRender(); // balansı dərhal göstər
         };
         td.appendChild(inp);
         tr.appendChild(td);
@@ -284,48 +303,56 @@
       const ops = document.createElement("div");
       ops.className = "ops";
 
-      // Cəmlə: n1 = (n1+n2+n3+n4+n5), n2..n5 = null, backup saxla (n1..n5)
+      // Cəmlə: n1 = (n1+n2+n3+n4+n5), n2..n5 = null, backup = INDİKİ n1..n5
       const btnSum = document.createElement("button");
       btnSum.textContent = "Cəmlə";
       btnSum.onclick = async () => {
         if (!loggedIn) return;
+
+        // indiki input dəyərləri
         const cur = {
-          n1: Number(numberInputs[0].value) || 0,
-          n2: Number(numberInputs[1].value) || 0,
-          n3: Number(numberInputs[2].value) || 0,
-          n4: Number(numberInputs[3].value) || 0,
-          n5: Number(numberInputs[4].value) || 0,
+          n1: numberInputs[0].value === "" ? 0 : Number(numberInputs[0].value),
+          n2: numberInputs[1].value === "" ? 0 : Number(numberInputs[1].value),
+          n3: numberInputs[2].value === "" ? 0 : Number(numberInputs[2].value),
+          n4: numberInputs[3].value === "" ? 0 : Number(numberInputs[3].value),
+          n5: numberInputs[4].value === "" ? 0 : Number(numberInputs[4].value),
+        };
+        const backup = {
+          n1: numberInputs[0].value === "" ? null : Number(numberInputs[0].value),
+          n2: numberInputs[1].value === "" ? null : Number(numberInputs[1].value),
+          n3: numberInputs[2].value === "" ? null : Number(numberInputs[2].value),
+          n4: numberInputs[3].value === "" ? null : Number(numberInputs[3].value),
+          n5: numberInputs[4].value === "" ? null : Number(numberInputs[4].value),
         };
         const sum = cur.n1 + cur.n2 + cur.n3 + cur.n4 + cur.n5;
 
         await updateDoc(doc(db, "rows", docId), {
-          backup: {
-            n1: data.n1 ?? null,
-            n2: data.n2 ?? null,
-            n3: data.n3 ?? null,
-            n4: data.n4 ?? null,
-            n5: data.n5 ?? null
-          },
+          backup,
           n1: sum, n2: null, n3: null, n4: null, n5: null
         });
         await saveSnapshot();
+        await fetchAndRender();
       };
 
-      // Geri: backup bərpa (n1..n5)
+      // Geri: backup-dan bərpa
       const btnUndo = document.createElement("button");
       btnUndo.textContent = "Geri";
       btnUndo.onclick = async () => {
         if (!loggedIn) return;
-        if (data.backup) {
-          await updateDoc(doc(db, "rows", docId), {
-            n1: data.backup.n1 ?? null,
-            n2: data.backup.n2 ?? null,
-            n3: data.backup.n3 ?? null,
-            n4: data.backup.n4 ?? null,
-            n5: data.backup.n5 ?? null,
+        const rowRef = doc(db, "rows", docId);
+        const rowSnap = await getDoc(rowRef);
+        const d = rowSnap.data();
+        if (d && d.backup) {
+          await updateDoc(rowRef, {
+            n1: d.backup.n1 ?? null,
+            n2: d.backup.n2 ?? null,
+            n3: d.backup.n3 ?? null,
+            n4: d.backup.n4 ?? null,
+            n5: d.backup.n5 ?? null,
             backup: null
           });
           await saveSnapshot();
+          await fetchAndRender();
         } else {
           alert("Geri qaytarmaq üçün əvvəlcə Cəmlə istifadə olunmalıdır!");
         }
@@ -338,6 +365,7 @@
         if (!loggedIn) return;
         await deleteDoc(doc(db, "rows", docId));
         await saveSnapshot();
+        await fetchAndRender();
       };
 
       ops.appendChild(btnSum);
@@ -360,6 +388,7 @@
           backup: null
         });
         await saveSnapshot();
+        await fetchAndRender();
       } catch (e) {
         setStatus("AddDoc Xəta: " + e.message);
       }
@@ -387,7 +416,8 @@
         });
         await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
       } catch (e) {
-        alert("Tarixçə yazılmadı: " + e.message);
+        // Səssiz keçək ki, istifadəçini yormasın
+        console.warn("Tarixçə yazılmadı:", e.message);
       }
     }
 

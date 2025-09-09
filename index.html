@@ -127,8 +127,9 @@
 
     // --- Login state ---
     let loggedIn = false;
+    let unsubscribeLive = null; // ⬅️ dinləyicini saxlamaq
 
-    // Firebase anonim auth (yalnız Firestore-a icazə üçün)
+    // Firebase anonim auth (Firestore üçün)
     try {
       await signInAnonymously(auth);
       setStatus("Auth OK (anonim giriş uğurlu)");
@@ -147,6 +148,7 @@
         appDiv.style.display = "block";
         historyPanel.style.display = "none";
         backLiveBtn.style.display = "none";
+        startLive(); // ⬅️ LOGIN OLDUQDA dinləyicini qoş
       } else {
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
@@ -158,13 +160,14 @@
       const ok = confirm("Çıxmaq istədiyinizə əminsiniz?");
       if (!ok) return;
       try { await signOut(auth); } catch (e) {}
-      // UI reset (heç nə görünməsin)
+      stopLive(); // ⬅️ dinləyicini söndür
+      // UI reset
       loggedIn = false;
       topToolbar.style.display = "none";
       appDiv.style.display = "none";
       historyPanel.style.display = "none";
       backLiveBtn.style.display = "none";
-      // görünən məlumatları da təmizləyək
+      // görünən məlumatları təmizlə
       tbody.innerHTML = "";
       snapshotsDiv.innerHTML = "";
       umumiEl.textContent = "0";
@@ -172,7 +175,43 @@
       setStatus("Çıxıldı (giriş tələb olunur)");
     };
 
-    // --- Live cədvəl qur ---
+    // --- Live dinləyici (yenidən qoşulan) ---
+    function startLive() {
+      // Əvvəl açıqsa bağla
+      stopLive();
+      const q = query(rowsCol, orderBy("createdAt","asc"));
+      unsubscribeLive = onSnapshot(q, (snap) => {
+        if (!loggedIn) return; // ehtiyat
+        tbody.innerHTML = "";
+        let total = 0;
+        let idx = 0;
+
+        snap.forEach((d) => {
+          const data = d.data();
+          const tr = createRow(d.id, data, idx);
+          tbody.appendChild(tr);
+
+          for (let i = 1; i <= 5; i++) {
+            total += Number(data["n"+i] ?? 0) || 0;
+          }
+          idx++;
+        });
+
+        umumiEl.textContent = fmt(total);
+        setStatus("Firestore OK (real-time qoşuldu)");
+      }, (err) => {
+        setStatus("Firestore Xəta: " + err.message);
+      });
+    }
+
+    function stopLive() {
+      if (unsubscribeLive) {
+        unsubscribeLive();
+        unsubscribeLive = null;
+      }
+    }
+
+    // Sətir qur
     function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
@@ -265,33 +304,6 @@
       tr.appendChild(tdOps);
 
       return tr;
-    }
-
-    // Live dinləmə (loggedIn yoxdursa DOM-u yeniləməyək)
-    try {
-      const q = query(rowsCol, orderBy("createdAt","asc"));
-      onSnapshot(q, (snap) => {
-        if (!loggedIn) return; // <-- logoutda heç nə göstərmə
-        tbody.innerHTML = "";
-        let total = 0;
-        let idx = 0;
-
-        snap.forEach((d) => {
-          const data = d.data();
-          const tr = createRow(d.id, data, idx);
-          tbody.appendChild(tr);
-
-          for (let i = 1; i <= 5; i++) {
-            total += Number(data["n"+i] ?? 0) || 0;
-          }
-          idx++;
-        });
-
-        umumiEl.textContent = fmt(total);
-        setStatus("Firestore OK (real-time qoşuldu)");
-      });
-    } catch (e) {
-      setStatus("Firestore Xəta: " + e.message);
     }
 
     // Yeni sətir

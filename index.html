@@ -2,7 +2,7 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8">
-  <title>Kassa Sistemi — Compact Pro (düzəlişli)</title>
+  <title>Kassa Sistemi — Compact Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: Arial, sans-serif; margin: 18px; background:#ffffff; color:#111; }
@@ -23,9 +23,9 @@
     th, td { border:1px solid #e5e7eb; padding:4px; text-align:center; }
 
     /* Sütun enləri */
-    th:nth-child(1), td:nth-child(1) { width:40px; }     /* # daraldıldı */
-    th:nth-child(2), td:nth-child(2) { width:200px; }   /* Hesab böyüdüldü */
-    th:nth-child(8), td:nth-child(8) { width:220px; }   /* Əməliyyat böyüdüldü */
+    th:nth-child(1), td:nth-child(1) { width:40px; }     /* # dar */
+    th:nth-child(2), td:nth-child(2) { width:200px; }   /* Hesab geniş */
+    th:nth-child(8), td:nth-child(8) { width:220px; }   /* Əməliyyat geniş */
 
     tbody tr:nth-child(even){ background:#fcfcfc; }
     tbody tr:hover { background:#f6faff; transition: background .12s; }
@@ -33,6 +33,7 @@
     td input { width: 96%; padding:6px; font-size:16px; font-weight:700; text-align:center;
                background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
     td input:focus { outline:none; border-color:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.22); }
+    td input[type="number"].neg { color:#dc2626; }
 
     .ops { display:flex; gap:6px; justify-content:center; }
     .ops button { border-radius:8px; border:1px solid #e5e7eb; background:#fff; padding:6px 10px; font-weight:700; cursor:pointer; }
@@ -45,18 +46,23 @@
 
     #login { text-align:center; margin-top: 36px; }
     #login input { font-size:16px; padding:10px 12px; width:240px; margin:6px 0; border:1px solid #e5e7eb; border-radius:10px; }
+    #login input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.2); }
     #login button { font-size:16px; padding:10px 18px; border-radius:10px; background:#22c55e; color:#fff; border:none; min-width:180px; }
+    #login button:hover { filter:brightness(.97); }
 
     #app { display:none; }
     #topToolbar { display:none; margin-bottom:8px; }
     #historyPanel { display:none; margin-top:10px; }
     .snap { border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin:10px 0; background:#fff; }
     .snap table { width:100%; border-collapse:collapse; font-size:14px; }
+    .snap th, .snap td { border:1px solid #eee; padding:6px; }
+    .snap th { background:#fafafa; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div id="status">Status: Yoxlanılır...</div>
+
     <div class="toolbar" id="topToolbar">
       <button id="historyBtn">Tarixçə</button>
       <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
@@ -68,7 +74,7 @@
       <input type="text" id="user" placeholder="İstifadəçi adı"><br>
       <input type="password" id="pass" placeholder="Şifrə"><br>
       <button onclick="giris()">Daxil ol</button>
-      <p id="error" style="color:#dc2626;"></p>
+      <p id="error" style="color:#dc2626; margin:6px 0 0 0;"></p>
     </div>
 
     <div id="app" class="card">
@@ -77,7 +83,9 @@
       <div id="liveWrap">
         <table>
           <thead>
-            <tr><th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>Əməliyyat</th></tr>
+            <tr>
+              <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>Əməliyyat</th>
+            </tr>
           </thead>
           <tbody id="tbody"></tbody>
           <tfoot><tr class="yekun"><td colspan="8">Balans: <span id="umumi">0</span></td></tr></tfoot>
@@ -91,20 +99,47 @@
     </div>
   </div>
 
-  <!-- 🔹 Script əvvəlki kimi qalır (login/logout, Firestore, Cəmlə/Geri və s.) -->
+  <!-- Tam funksional JS -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
     import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-    import { getFirestore, collection, addDoc, updateDoc, deleteDoc,
-             doc, onSnapshot, serverTimestamp, query, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+    import {
+      getFirestore, collection, addDoc, updateDoc, deleteDoc,
+      doc, onSnapshot, serverTimestamp, query, orderBy, getDocs, getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    const firebaseConfig = { /* 🔑 sənin config burada olacaq */ };
+    // 🔑 Sənin real config-in
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
+      authDomain: "kassa-11972.firebaseapp.com",
+      projectId: "kassa-11972",
+      storageBucket: "kassa-11972.firebasestorage.app",
+      messagingSenderId: "597453262060",
+      appId: "1:597453262060:web:d08c7aca28522f8fd869c9",
+      measurementId: "G-PXYCSSNZS5"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // --- Qalan bütün JS kodları əvvəlki kimi işləyir (login/logout, startLive, createRow, cəmlə/geri və s.) ---
-  </script>
-</body>
-</html>
+    const statusEl = document.getElementById("status");
+    const setStatus = (t)=> statusEl.textContent = "Status: " + t;
+    const fmt = (n)=> new Intl.NumberFormat("az-AZ").format(n);
+
+    const rowsCol = collection(db, "rows");
+    const snapsCol = collection(db, "snapshots");
+
+    const tbody = document.getElementById("tbody");
+    const umumiEl = document.getElementById("umumi");
+    const yeniBtn = document.getElementById("yeniBtn");
+    const historyBtn = document.getElementById("historyBtn");
+    const backLiveBtn = document.getElementById("backLiveBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const appDiv = document.getElementById("app");
+    const historyPanel = document.getElementById("historyPanel");
+    const snapshotsDiv = document.getElementById("snapshots");
+    const topToolbar = document.getElementById("topToolbar");
+    const loginDiv = document.getElementById("login");
+
+    let loggedIn=false, unsubscribeLive=null, isEditing=false, hasPendingSnapshot=false, latestDocs

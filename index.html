@@ -67,14 +67,15 @@
       doc, onSnapshot, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    // 👉 BURANI ÖZ PROJECT-IN CONFIG-İ İLƏ DƏYİŞ
+    // ✅ Sənin Firebase config-in
     const firebaseConfig = {
-      apiKey: "SENIN_API_KEY",
-      authDomain: "SENIN_PROJECT.firebaseapp.com",
-      projectId: "SENIN_PROJECT",
-      storageBucket: "SENIN_PROJECT.appspot.com",
-      messagingSenderId: "XXXXXXX",
-      appId: "XXXXXXX"
+      apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
+      authDomain: "kassa-11972.firebaseapp.com",
+      projectId: "kassa-11972",
+      storageBucket: "kassa-11972.firebasestorage.app",
+      messagingSenderId: "597453262060",
+      appId: "1:597453262060:web:d08c7aca28522f8fd869c9",
+      measurementId: "G-PXYCSSNZS5"
     };
 
     // Init
@@ -136,17 +137,17 @@
         inp.type = "number";
         inp.value = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
 
-        // 1..4: sadə update; 5: sətrin cəmi məntiqi
         if (i < 5) {
+          // 1..4: sadə update (balans real-time yenilənir)
           inp.onchange = () => {
             const v = inp.value === "" ? null : Number(inp.value);
             updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
           };
         } else {
+          // 5: dolduqda sətirin cəmini 1-ci sütuna yaz, qalanları boşalt
           inp.onchange = async () => {
             const lastVal = inp.value;
             if (lastVal !== "") {
-              // mövcud inputlardan oxuyub cəmlə
               const v1 = Number(numberInputs[0].value) || 0;
               const v2 = Number(numberInputs[1].value) || 0;
               const v3 = Number(numberInputs[2].value) || 0;
@@ -213,7 +214,7 @@
       });
     };
 
-    // Köhnə API-lər üçün yerində saxlayırıq
+    // Köhnə handler-lər üçün
     window.umumiHesabla = function(){};
     window.yeniSira = () => yeniBtn.click();
     window.silSira = async (btn) => {

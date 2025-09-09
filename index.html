@@ -7,17 +7,12 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     h2 { background: red; color: white; padding: 10px; border-radius: 8px; text-align: center; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 18px; font-weight: bold; } /* cədvəl şrift ölçüsü və qalınlıq */
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 18px; font-weight: bold; }
     th, td { border: 1px solid #555; padding: 8px; text-align: center; }
     th { background: #f0f0f0; }
-    td input { 
-      font-size: 18px; 
-      font-weight: bold; 
-      padding: 6px; 
-      text-align: center; 
-    } /* inputların görünüşü böyüdü */
+    td input { font-size: 18px; font-weight: bold; padding: 6px; text-align: center; }
     .yekun { background: #4CAF50; color: white; font-weight: bold; font-size: 28px; }
-    button { margin: 5px; padding: 6px 12px; cursor: pointer; font-size: 15px; font-weight: bold; }
+    button { margin: 3px; padding: 6px 10px; cursor: pointer; font-size: 14px; font-weight: bold; }
     #login { text-align: center; margin-top: 60px; }
     #app { display: none; }
     #status { margin:8px 0; padding:8px; border:1px dashed #888; }
@@ -78,6 +73,7 @@
       doc, onSnapshot, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
+    // ✅ Sənin Firebase config-in
     const firebaseConfig = {
       apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
       authDomain: "kassa-11972.firebaseapp.com",
@@ -151,6 +147,7 @@
         numberInputs.push(inp);
       }
 
+      // Əməliyyat: Cəmlə + Geri + Sil
       const tdOps = document.createElement("td");
       const ops = document.createElement("div");
       ops.className = "ops";
@@ -158,6 +155,12 @@
       const btnSum = document.createElement("button");
       btnSum.textContent = "Cəmlə";
       btnSum.onclick = async () => {
+        const backup = {
+          n2: data.n2 ?? null,
+          n3: data.n3 ?? null,
+          n4: data.n4 ?? null,
+          n5: data.n5 ?? null
+        };
         const v1 = Number(numberInputs[0].value) || 0;
         const v2 = Number(numberInputs[1].value) || 0;
         const v3 = Number(numberInputs[2].value) || 0;
@@ -166,8 +169,25 @@
         const sum = v1 + v2 + v3 + v4 + v5;
 
         await updateDoc(doc(db, "rows", docId), {
-          n1: sum, n2: null, n3: null, n4: null, n5: null
+          n1: sum, n2: null, n3: null, n4: null, n5: null, backup: backup
         });
+      };
+
+      const btnUndo = document.createElement("button");
+      btnUndo.textContent = "Geri";
+      btnUndo.onclick = async () => {
+        if (data.backup) {
+          await updateDoc(doc(db, "rows", docId), {
+            n1: null,
+            n2: data.backup.n2 ?? null,
+            n3: data.backup.n3 ?? null,
+            n4: data.backup.n4 ?? null,
+            n5: data.backup.n5 ?? null,
+            backup: null
+          });
+        } else {
+          alert("Geri qaytarmaq üçün əvvəlcə Cəmlə istifadə olunmalıdır!");
+        }
       };
 
       const btnDel = document.createElement("button");
@@ -175,6 +195,7 @@
       btnDel.onclick = async () => { await deleteDoc(doc(db, "rows", docId)); };
 
       ops.appendChild(btnSum);
+      ops.appendChild(btnUndo);
       ops.appendChild(btnDel);
       tdOps.appendChild(ops);
       tr.appendChild(tdOps);
@@ -212,7 +233,7 @@
         await addDoc(rowsCol, {
           account: "",
           n1: null, n2: null, n3: null, n4: null, n5: null,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(), backup: null
         });
       } catch (e) {
         setStatus("AddDoc Xəta: " + e.message);

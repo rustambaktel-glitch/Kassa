@@ -18,25 +18,35 @@
     #status { margin:8px 0; padding:8px; border:1px dashed #888; }
     .toolbar { display:flex; gap:10px; align-items:center; margin:8px 0 4px; flex-wrap:wrap; }
     .ops { display:flex; gap:6px; justify-content:center; }
+    /* Tarixçə paneli */
+    #historyPanel { display:none; margin-top: 12px; }
+    .snap { border:1px solid #ccc; border-radius:8px; padding:10px; margin:10px 0; background:#fafafa; }
+    .snap h4 { margin:0 0 8px 0; font-size:16px; }
+    .snap table { width:100%; font-size:16px; font-weight: normal; }
+    #backLiveBtn { display:none; }
   </style>
 </head>
 <body>
 
   <div id="status">Status: Yoxlanılır...</div>
 
+  <!-- LOGIN -->
   <div id="login">
-    <h2>Kassa Sisteminə Giriş</h2>
+    <h2>Kassa Hesabatı</h2>
     <input type="text" id="user" placeholder="İstifadəçi adı"><br>
     <input type="password" id="pass" placeholder="Şifrə"><br>
     <button onclick="giris()">Daxil ol</button>
     <p id="error" style="color:red;"></p>
   </div>
 
+  <!-- APP (Live görünüş) -->
   <div id="app">
     <h2>Kassa Hesabatı</h2>
 
     <div class="toolbar">
       <button id="yeniBtn">+ Sətir əlavə et</button>
+      <button id="historyBtn">Tarixçə</button>
+      <button id="backLiveBtn">Cari vəziyyət</button>
     </div>
 
     <table id="kassa">
@@ -61,12 +71,18 @@
     </table>
   </div>
 
+  <!-- TARİXÇƏ PANELİ (read-only) -->
+  <div id="historyPanel">
+    <h2 style="text-align:center;">Tarixçə</h2>
+    <div id="snapshots"></div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
     import {
       getFirestore, collection, addDoc, updateDoc, deleteDoc,
-      doc, onSnapshot, serverTimestamp, query, orderBy
+      doc, onSnapshot, serverTimestamp, query, orderBy, getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
     // Sənin Firebase config-in
@@ -95,22 +111,33 @@
       setStatus("Auth Xəta: " + e.message);
     }
 
+    // Kolleksiyalar
     const rowsCol = collection(db, "rows");
+    const snapsCol = collection(db, "snapshots");
+
+    // DOM
     const tbody = document.getElementById("tbody");
     const umumiEl = document.getElementById("umumi");
     const yeniBtn = document.getElementById("yeniBtn");
+    const historyBtn = document.getElementById("historyBtn");
+    const backLiveBtn = document.getElementById("backLiveBtn");
+    const appDiv = document.getElementById("app");
+    const historyPanel = document.getElementById("historyPanel");
+    const snapshotsDiv = document.getElementById("snapshots");
 
+    // Lokal LOGIN (vizual kilid)
     window.giris = function giris() {
       const user = document.getElementById("user").value.trim();
       const pass = document.getElementById("pass").value.trim();
       if (user === "admin" && pass === "1234") {
         document.getElementById("login").style.display = "none";
-        document.getElementById("app").style.display = "block";
+        appDiv.style.display = "block";
       } else {
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
     };
 
+    // --- Live CƏDVƏL ---
     function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
@@ -126,7 +153,7 @@
       inpAcc.type = "text";
       inpAcc.placeholder = "Hesab adı";
       inpAcc.value = data.account || "";
-      inpAcc.onchange = () => updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" });
+      inpAcc.onchange = () => updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" }).then(saveSnapshot);
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
 
@@ -139,23 +166,21 @@
         inp.value = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
         inp.onchange = () => {
           const v = inp.value === "" ? null : Number(inp.value);
-          updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
+          updateDoc(doc(db, "rows", docId), { ["n"+i]: v }).then(saveSnapshot);
         };
         td.appendChild(inp);
         tr.appendChild(td);
         numberInputs.push(inp);
       }
 
-      // Əməliyyatlar
+      // Əməliyyatlar: Cəmlə / Geri / Sil
       const tdOps = document.createElement("td");
       const ops = document.createElement("div");
       ops.className = "ops";
 
-      // Cəmlə: n1 = n1+n2+n3+n4+n5 ; n2..n5 = null ; BACKUP saxla (n1..n5)
       const btnSum = document.createElement("button");
       btnSum.textContent = "Cəmlə";
       btnSum.onclick = async () => {
-        // Hazır dəyərləri oxu
         const cur = {
           n1: Number(numberInputs[0].value) || 0,
           n2: Number(numberInputs[1].value) || 0,
@@ -173,12 +198,11 @@
             n4: data.n4 ?? null,
             n5: data.n5 ?? null
           },
-          n1: sum,
-          n2: null, n3: null, n4: null, n5: null
+          n1: sum, n2: null, n3: null, n4: null, n5: null
         });
+        await saveSnapshot();
       };
 
-      // Geri: backup-dakı n1..n5 tam bərpa olunsun
       const btnUndo = document.createElement("button");
       btnUndo.textContent = "Geri";
       btnUndo.onclick = async () => {
@@ -191,6 +215,7 @@
             n5: data.backup.n5 ?? null,
             backup: null
           });
+          await saveSnapshot();
         } else {
           alert("Geri qaytarmaq üçün əvvəlcə Cəmlə istifadə olunmalıdır!");
         }
@@ -198,7 +223,7 @@
 
       const btnDel = document.createElement("button");
       btnDel.textContent = "Sil";
-      btnDel.onclick = async () => { await deleteDoc(doc(db, "rows", docId)); };
+      btnDel.onclick = async () => { await deleteDoc(doc(db, "rows", docId)); await saveSnapshot(); };
 
       ops.appendChild(btnSum);
       ops.appendChild(btnUndo);
@@ -209,6 +234,7 @@
       return tr;
     }
 
+    // Live dinləmə
     try {
       const q = query(rowsCol, orderBy("createdAt","asc"));
       onSnapshot(q, (snap) => {
@@ -234,6 +260,7 @@
       setStatus("Firestore Xəta: " + e.message);
     }
 
+    // Yeni sətir
     yeniBtn.onclick = async () => {
       try {
         await addDoc(rowsCol, {
@@ -242,10 +269,102 @@
           createdAt: serverTimestamp(),
           backup: null
         });
+        await saveSnapshot();
       } catch (e) {
         setStatus("AddDoc Xəta: " + e.message);
       }
     };
+
+    // --- Tarixçə mexanizmi ---
+    // 1) Cari vəziyyətin snapshot-ını saxla (rows → array)
+    async function saveSnapshot() {
+      // Rows-u ən son vəziyyətlə oxu
+      const qRows = query(rowsCol, orderBy("createdAt","asc"));
+      const snap = await getDocs(qRows);
+      const rows = [];
+      let i = 1;
+      snap.forEach(docu => {
+        const r = docu.data();
+        rows.push({
+          no: i++,
+          account: r.account || "",
+          n1: r.n1 ?? "",
+          n2: r.n2 ?? "",
+          n3: r.n3 ?? "",
+          n4: r.n4 ?? "",
+          n5: r.n5 ?? ""
+        });
+      });
+      // Boşdursa snapshot yaratmaya bilərik; amma tarixçə üçün saxlayırıq
+      await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
+    }
+
+    // 2) Tarixçə görünüşü – snapshot-ları göstər
+    historyBtn.onclick = async () => {
+      appDiv.style.display = "none";
+      historyPanel.style.display = "block";
+      backLiveBtn.style.display = "inline-block";
+      await renderHistory();
+    };
+
+    backLiveBtn.onclick = () => {
+      historyPanel.style.display = "none";
+      appDiv.style.display = "block";
+      backLiveBtn.style.display = "none";
+    };
+
+    async function renderHistory() {
+      snapshotsDiv.innerHTML = "Yüklənir...";
+      const qSnaps = query(snapsCol, orderBy("createdAt","desc"));
+      const snap = await getDocs(qSnaps);
+      if (snap.empty) {
+        snapshotsDiv.innerHTML = "<i>Hələ tarixçə yoxdur.</i>";
+        return;
+      }
+      const parts = [];
+      snap.forEach(s => {
+        const d = s.data();
+        const when = d.createdAt?.toDate?.() ? d.createdAt.toDate().toLocaleString("az-AZ") : "(vaxt yoxdur)";
+        const rows = d.rows || [];
+        let rowsHtml = `
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        rows.forEach(r => {
+          rowsHtml += `
+            <tr>
+              <td>${r.no ?? ""}</td>
+              <td>${escapeHtml(r.account ?? "")}</td>
+              <td>${r.n1 ?? ""}</td>
+              <td>${r.n2 ?? ""}</td>
+              <td>${r.n3 ?? ""}</td>
+              <td>${r.n4 ?? ""}</td>
+              <td>${r.n5 ?? ""}</td>
+            </tr>
+          `;
+        });
+        rowsHtml += `</tbody></table>`;
+
+        parts.push(`
+          <div class="snap">
+            <h4>${when}</h4>
+            ${rowsHtml}
+          </div>
+        `);
+      });
+      snapshotsDiv.innerHTML = parts.join("");
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[m]));
+    }
   </script>
 </body>
 </html>

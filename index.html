@@ -13,15 +13,45 @@
     td input { font-size: 18px; font-weight: bold; padding: 6px; text-align: center; }
     .yekun { background: #4CAF50; color: white; font-weight: bold; font-size: 28px; }
     button { margin: 3px; padding: 6px 10px; cursor: pointer; font-size: 14px; font-weight: bold; }
-    #login { text-align: center; margin-top: 60px; }
-    #app { display: none; }
     #status { margin:8px 0; padding:8px; border:1px dashed #888; }
     .toolbar { display:flex; gap:10px; align-items:center; margin:8px 0 4px; flex-wrap:wrap; }
     .ops { display:flex; gap:6px; justify-content:center; }
+
+    /* 🔹 Login səhifəsini böyütdüm */
+    #login { text-align: center; margin-top: 60px; }
+    #login h2 { margin-bottom: 16px; }
+    #login input {
+      font-size: 20px;
+      padding: 10px 14px;
+      width: 280px;
+      margin: 8px 0;
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      outline: none;
+    }
+    #login input:focus { border-color: #4CAF50; box-shadow: 0 0 0 2px rgba(76,175,80,0.2); }
+    #login button {
+      font-size: 18px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      margin-top: 10px;
+      min-width: 200px;
+    }
+    #login button:hover { filter: brightness(0.95); }
+    #login p { margin-top: 8px; }
+
+    /* Panellər */
+    #app { display: none; }
     #historyPanel { display:none; margin-top: 12px; }
     .snap { border:1px solid #ccc; border-radius:8px; padding:10px; margin:10px 0; background:#fafafa; }
     .snap h4 { margin:0 0 8px 0; font-size:16px; }
     .snap table { width:100%; font-size:16px; font-weight: normal; }
+
+    /* Üst toolbar (yalnız login olduqda) */
+    #topToolbar { justify-content:flex-start; display:none; }
   </style>
 </head>
 <body>
@@ -29,7 +59,7 @@
   <div id="status">Status: Yoxlanılır...</div>
 
   <!-- ÜST TOOLBAR (login OLDUQDA görünəcək) -->
-  <div class="toolbar" id="topToolbar" style="justify-content:flex-start; display:none;">
+  <div class="toolbar" id="topToolbar">
     <button id="historyBtn">Tarixçə</button>
     <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
     <button id="logoutBtn" style="margin-left:auto;background:#f44336;color:#fff;">Çıxış</button>
@@ -127,7 +157,7 @@
 
     // --- Login state ---
     let loggedIn = false;
-    let unsubscribeLive = null; // ⬅️ dinləyicini saxlamaq
+    let unsubscribeLive = null;
 
     // Firebase anonim auth (Firestore üçün)
     try {
@@ -148,26 +178,24 @@
         appDiv.style.display = "block";
         historyPanel.style.display = "none";
         backLiveBtn.style.display = "none";
-        startLive(); // ⬅️ LOGIN OLDUQDA dinləyicini qoş
+        startLive();
       } else {
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
     };
 
-    // ÇIXIŞ düyməsi
+    // ÇIXIŞ
     logoutBtn.onclick = async () => {
       if (!loggedIn) return;
       const ok = confirm("Çıxmaq istədiyinizə əminsiniz?");
       if (!ok) return;
       try { await signOut(auth); } catch (e) {}
-      stopLive(); // ⬅️ dinləyicini söndür
-      // UI reset
+      stopLive();
       loggedIn = false;
       topToolbar.style.display = "none";
       appDiv.style.display = "none";
       historyPanel.style.display = "none";
       backLiveBtn.style.display = "none";
-      // görünən məlumatları təmizlə
       tbody.innerHTML = "";
       snapshotsDiv.innerHTML = "";
       umumiEl.textContent = "0";
@@ -175,13 +203,12 @@
       setStatus("Çıxıldı (giriş tələb olunur)");
     };
 
-    // --- Live dinləyici (yenidən qoşulan) ---
+    // --- Live dinləyici ---
     function startLive() {
-      // Əvvəl açıqsa bağla
       stopLive();
       const q = query(rowsCol, orderBy("createdAt","asc"));
       unsubscribeLive = onSnapshot(q, (snap) => {
-        if (!loggedIn) return; // ehtiyat
+        if (!loggedIn) return;
         tbody.innerHTML = "";
         let total = 0;
         let idx = 0;

@@ -18,17 +18,21 @@
     #status { margin:8px 0; padding:8px; border:1px dashed #888; }
     .toolbar { display:flex; gap:10px; align-items:center; margin:8px 0 4px; flex-wrap:wrap; }
     .ops { display:flex; gap:6px; justify-content:center; }
-    /* Tarixçə paneli */
     #historyPanel { display:none; margin-top: 12px; }
     .snap { border:1px solid #ccc; border-radius:8px; padding:10px; margin:10px 0; background:#fafafa; }
     .snap h4 { margin:0 0 8px 0; font-size:16px; }
     .snap table { width:100%; font-size:16px; font-weight: normal; }
-    #backLiveBtn { display:none; }
   </style>
 </head>
 <body>
 
   <div id="status">Status: Yoxlanılır...</div>
+
+  <!-- ÜST TOOLBAR (hər iki rejimdə görünür) -->
+  <div class="toolbar" id="topToolbar" style="justify-content:flex-start;">
+    <button id="historyBtn">Tarixçə</button>
+    <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
+  </div>
 
   <!-- LOGIN -->
   <div id="login">
@@ -39,39 +43,39 @@
     <p id="error" style="color:red;"></p>
   </div>
 
-  <!-- APP (Live görünüş) -->
+  <!-- APP (live rejim) -->
   <div id="app">
     <h2>Kassa Hesabatı</h2>
 
     <div class="toolbar">
       <button id="yeniBtn">+ Sətir əlavə et</button>
-      <button id="historyBtn">Tarixçə</button>
-      <button id="backLiveBtn">Cari vəziyyət</button>
     </div>
 
-    <table id="kassa">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Hesab</th>
-          <th>1</th>
-          <th>2</th>
-          <th>3</th>
-          <th>4</th>
-          <th>5</th>
-          <th>Əməliyyat</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-      <tfoot>
-        <tr class="yekun">
-          <td colspan="8">Balans: <span id="umumi">0</span></td>
-        </tr>
-      </tfoot>
-    </table>
+    <div id="liveWrap">
+      <table id="kassa">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Hesab</th>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+            <th>Əməliyyat</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr class="yekun">
+            <td colspan="8">Balans: <span id="umumi">0</span></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   </div>
 
-  <!-- TARİXÇƏ PANELİ (read-only) -->
+  <!-- TARİXÇƏ PANELİ -->
   <div id="historyPanel">
     <h2 style="text-align:center;">Tarixçə</h2>
     <div id="snapshots"></div>
@@ -85,7 +89,7 @@
       doc, onSnapshot, serverTimestamp, query, orderBy, getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    // Sənin Firebase config-in
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
       authDomain: "kassa-11972.firebaseapp.com",
@@ -125,7 +129,7 @@
     const historyPanel = document.getElementById("historyPanel");
     const snapshotsDiv = document.getElementById("snapshots");
 
-    // Lokal LOGIN (vizual kilid)
+    // LOGIN (vizual kilid)
     window.giris = function giris() {
       const user = document.getElementById("user").value.trim();
       const pass = document.getElementById("pass").value.trim();
@@ -137,17 +141,15 @@
       }
     };
 
-    // --- Live CƏDVƏL ---
+    // Sətir qur
     function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
 
-      // №
       const tdNo = document.createElement("td");
       tdNo.textContent = index + 1;
       tr.appendChild(tdNo);
 
-      // Hesab
       const tdAcc = document.createElement("td");
       const inpAcc = document.createElement("input");
       inpAcc.type = "text";
@@ -157,7 +159,6 @@
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
 
-      // 1..5
       const numberInputs = [];
       for (let i = 1; i <= 5; i++) {
         const td = document.createElement("td");
@@ -173,7 +174,6 @@
         numberInputs.push(inp);
       }
 
-      // Əməliyyatlar: Cəmlə / Geri / Sil
       const tdOps = document.createElement("td");
       const ops = document.createElement("div");
       ops.className = "ops";
@@ -275,32 +275,33 @@
       }
     };
 
-    // --- Tarixçə mexanizmi ---
-    // 1) Cari vəziyyətin snapshot-ını saxla (rows → array)
+    // --- Tarixçə ---
     async function saveSnapshot() {
-      // Rows-u ən son vəziyyətlə oxu
-      const qRows = query(rowsCol, orderBy("createdAt","asc"));
-      const snap = await getDocs(qRows);
-      const rows = [];
-      let i = 1;
-      snap.forEach(docu => {
-        const r = docu.data();
-        rows.push({
-          no: i++,
-          account: r.account || "",
-          n1: r.n1 ?? "",
-          n2: r.n2 ?? "",
-          n3: r.n3 ?? "",
-          n4: r.n4 ?? "",
-          n5: r.n5 ?? ""
+      try {
+        const qRows = query(rowsCol, orderBy("createdAt","asc"));
+        const snap = await getDocs(qRows);
+        const rows = [];
+        let i = 1;
+        snap.forEach(docu => {
+          const r = docu.data();
+          rows.push({
+            no: i++,
+            account: r.account || "",
+            n1: r.n1 ?? "",
+            n2: r.n2 ?? "",
+            n3: r.n3 ?? "",
+            n4: r.n4 ?? "",
+            n5: r.n5 ?? ""
+          });
         });
-      });
-      // Boşdursa snapshot yaratmaya bilərik; amma tarixçə üçün saxlayırıq
-      await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
+        await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
+      } catch (e) {
+        alert("Tarixçə yazılmadı: " + e.message);
+      }
     }
 
-    // 2) Tarixçə görünüşü – snapshot-ları göstər
     historyBtn.onclick = async () => {
+      // Görünüşləri dəyiş
       appDiv.style.display = "none";
       historyPanel.style.display = "block";
       backLiveBtn.style.display = "inline-block";
@@ -314,50 +315,57 @@
     };
 
     async function renderHistory() {
-      snapshotsDiv.innerHTML = "Yüklənir...";
-      const qSnaps = query(snapsCol, orderBy("createdAt","desc"));
-      const snap = await getDocs(qSnaps);
-      if (snap.empty) {
-        snapshotsDiv.innerHTML = "<i>Hələ tarixçə yoxdur.</i>";
-        return;
-      }
-      const parts = [];
-      snap.forEach(s => {
-        const d = s.data();
-        const when = d.createdAt?.toDate?.() ? d.createdAt.toDate().toLocaleString("az-AZ") : "(vaxt yoxdur)";
-        const rows = d.rows || [];
-        let rowsHtml = `
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-        rows.forEach(r => {
-          rowsHtml += `
-            <tr>
-              <td>${r.no ?? ""}</td>
-              <td>${escapeHtml(r.account ?? "")}</td>
-              <td>${r.n1 ?? ""}</td>
-              <td>${r.n2 ?? ""}</td>
-              <td>${r.n3 ?? ""}</td>
-              <td>${r.n4 ?? ""}</td>
-              <td>${r.n5 ?? ""}</td>
-            </tr>
+      try {
+        snapshotsDiv.innerHTML = "Yüklənir...";
+        const qSnaps = query(snapsCol, orderBy("createdAt","desc"));
+        const snap = await getDocs(qSnaps);
+        if (snap.empty) {
+          snapshotsDiv.innerHTML = "<i>Hələ tarixçə yoxdur.</i>";
+          return;
+        }
+        const parts = [];
+        snap.forEach(s => {
+          const d = s.data();
+          const when = d.createdAt?.toDate?.()
+            ? d.createdAt.toDate().toLocaleString("az-AZ")
+            : "(vaxt yoxdur)";
+          const rows = d.rows || [];
+          let rowsHtml = `
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+                </tr>
+              </thead>
+              <tbody>
           `;
-        });
-        rowsHtml += `</tbody></table>`;
+          rows.forEach(r => {
+            rowsHtml += `
+              <tr>
+                <td>${r.no ?? ""}</td>
+                <td>${escapeHtml(r.account ?? "")}</td>
+                <td>${r.n1 ?? ""}</td>
+                <td>${r.n2 ?? ""}</td>
+                <td>${r.n3 ?? ""}</td>
+                <td>${r.n4 ?? ""}</td>
+                <td>${r.n5 ?? ""}</td>
+              </tr>
+            `;
+          });
+          rowsHtml += `</tbody></table>`;
 
-        parts.push(`
-          <div class="snap">
-            <h4>${when}</h4>
-            ${rowsHtml}
-          </div>
-        `);
-      });
-      snapshotsDiv.innerHTML = parts.join("");
+          parts.push(`
+            <div class="snap">
+              <h4>${when}</h4>
+              ${rowsHtml}
+            </div>
+          `);
+        });
+        snapshotsDiv.innerHTML = parts.join("");
+      } catch (e) {
+        snapshotsDiv.innerHTML = "";
+        alert("Tarixçə oxuna bilmədi: " + e.message);
+      }
     }
 
     function escapeHtml(s) {

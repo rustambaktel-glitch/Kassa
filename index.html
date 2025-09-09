@@ -6,30 +6,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
-      --dark:#1f2937; --darker:#374151; --border:#e5e7eb; --muted:#fafafa; --green:#22c55e; --red:#ef4444; --blue:#2563eb;
+      --dark:#1f2937; --darker:#374151; --border:#e5e7eb; --green:#22c55e; --red:#ef4444; --blue:#2563eb;
     }
-    body { font-family: Arial, sans-serif; margin: 18px; background:#ffffff; color:#111; }
-    h2 { margin: 0 0 12px 0; font-size: 22px; font-weight: 800; text-align:center; color:#111; text-transform: uppercase; }
-    .wrap { max-width: 1200px; margin: 0 auto; }
+    body { font-family: Arial, sans-serif; margin:18px; background:#fff; color:#111; }
+    h2 { margin:0 0 12px 0; font-size:22px; font-weight:800; text-align:center; text-transform:uppercase; }
+    .wrap { max-width:1200px; margin:0 auto; }
     .card { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.04); padding:12px; }
 
-    .toolbar { display:flex; gap:8px; align-items:center; margin:8px 0; flex-wrap:wrap; }
-    .toolbar button { border:1px solid var(--border); background:#fff; color:#111; padding:8px 10px; border-radius:8px; font-weight:600; cursor:pointer; }
+    .toolbar { display:flex; gap:8px; margin:8px 0; flex-wrap:wrap; }
+    .toolbar button { border:1px solid var(--border); background:#fff; padding:8px 10px; border-radius:8px; font-weight:600; cursor:pointer; }
     .toolbar button:hover { background:#f8fafc; }
-    #logoutBtn { background:var(--red); border-color:var(--red); color:#fff; margin-left:auto; }
+    #logoutBtn { background:var(--red); color:#fff; margin-left:auto; }
 
-    #status { margin:8px 0; padding:8px; border:1px dashed var(--border); border-radius:10px; background:#fafafa; font-size:13px; color:#374151; }
-
-    .modules { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; justify-content:center; }
-    .modules button {
-      border:1px solid var(--border); background:#fff; padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer;
-    }
+    .modules { display:flex; gap:8px; justify-content:center; margin:12px 0; }
+    .modules button { border:1px solid var(--border); background:#fff; padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer; }
     .modules button:hover { background:#f8fafc; }
 
-    table { width:100%; border-collapse: collapse; table-layout: fixed; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-    thead th { background:var(--dark); color:#ffffff; padding:10px; font-size:16px; }
-    th, td { border:1px solid var(--border); text-align:center; padding:6px; }
-
+    table { width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    thead th { background:var(--dark); color:#fff; padding:10px; font-size:16px; }
+    th,td { border:1px solid var(--border); text-align:center; padding:6px; }
     .yekun { background:var(--green); color:#fff; font-weight:800; font-size:20px; text-align:right; padding-right:20px; }
 
     .ops { display:flex; gap:6px; justify-content:center; }
@@ -38,10 +33,9 @@
     .ops button.undo { background:#e5e7eb; }
     .ops button.del { background:var(--red); color:#fff; }
 
-    #login { text-align:center; margin-top: 36px; }
+    #login { text-align:center; margin-top:36px; }
     #login input { font-size:16px; padding:10px 12px; width:240px; margin:6px 0; border:1px solid var(--border); border-radius:10px; }
     #login button { font-size:16px; padding:10px 18px; border-radius:10px; background:var(--green); color:#fff; border:none; min-width:180px; }
-    #login button:hover { filter:brightness(.97); }
 
     #topToolbar, #appHome, #appKassa, #appCustomers, #historyPanel { display:none; }
   </style>
@@ -58,7 +52,7 @@
 
     <!-- Login -->
     <div id="login" class="card">
-      <h2>KASSA SİSTEMİ</h2>
+      <h2>GİRİŞ</h2>
       <input type="text" id="user" placeholder="İstifadəçi adı"><br>
       <input type="password" id="pass" placeholder="Şifrə"><br>
       <button onclick="giris()">Daxil ol</button>
@@ -98,9 +92,7 @@
         <button id="addCustomerBtn">+ Müştəri əlavə et</button>
       </div>
       <table>
-        <thead>
-          <tr><th>#</th><th>Ad Soyad</th><th>Telefon</th><th>Ünvan</th><th>Əməliyyat</th></tr>
-        </thead>
+        <thead><tr><th>#</th><th>Ad Soyad</th><th>Telefon</th><th>Ünvan</th><th>Əməliyyat</th></tr></thead>
         <tbody id="customerBody"></tbody>
       </table>
     </div>
@@ -119,7 +111,6 @@
       doc, onSnapshot, serverTimestamp, query, orderBy, getDocs, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    // Firebase config (sənin öz configinlə əvəz et)
     const firebaseConfig = {
       apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
       authDomain: "kassa-11972.firebaseapp.com",
@@ -129,22 +120,38 @@
       appId: "1:597453262060:web:d08c7aca28522f8fd869c9",
       measurementId: "G-PXYCSSNZS5"
     };
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // ====== Elementlər ======
     const loginDiv=document.getElementById("login");
     const appHome=document.getElementById("appHome");
     const appKassa=document.getElementById("appKassa");
     const appCustomers=document.getElementById("appCustomers");
-
     const openKassaBtn=document.getElementById("openKassaBtn");
     const openCustomersBtn=document.getElementById("openCustomersBtn");
     const homeBtn1=document.getElementById("homeBtn1");
     const homeBtn2=document.getElementById("homeBtn2");
+    const statusEl=document.getElementById("status");
+    const tbody=document.getElementById("tbody");
+    const umumiEl=document.getElementById("umumi");
+    const yeniBtn=document.getElementById("yeniBtn");
+    const historyBtn=document.getElementById("historyBtn");
+    const backLiveBtn=document.getElementById("backLiveBtn");
+    const logoutBtn=document.getElementById("logoutBtn");
+    const snapshotsDiv=document.getElementById("snapshots");
+    const customerBody=document.getElementById("customerBody");
+    const addCustomerBtn=document.getElementById("addCustomerBtn");
 
-    // ---- Sadə görünüş idarəsi ----
+    const rowsCol=collection(db,"rows");
+    const snapsCol=collection(db,"snapshots");
+
+    let loggedIn=false, unsubscribeLive=null;
+
+    function setStatus(t){ statusEl.textContent="Status: "+t; }
+    function fmt(n){ return new Intl.NumberFormat("az-AZ").format(n); }
+
     function showView(id){
       ["appHome","appKassa","appCustomers","historyPanel"].forEach(v=>{
         const el=document.getElementById(v); if(el) el.style.display="none";
@@ -152,44 +159,108 @@
       document.getElementById(id).style.display="block";
     }
 
-    // Login
+    // ==== LOGIN ====
     window.giris=function(){
       const u=document.getElementById("user").value.trim();
       const p=document.getElementById("pass").value.trim();
       if(u==="admin" && p==="1234"){
-        loginDiv.style.display="none";
+        loggedIn=true; loginDiv.style.display="none";
         document.getElementById("topToolbar").style.display="flex";
-        showView("appHome");
+        showView("appHome"); startLive();
       }else document.getElementById("error").innerText="İstifadəçi adı və ya şifrə səhvdir!";
     };
 
-    // Modul düymələri
+    logoutBtn.onclick=async()=>{
+      if(!loggedIn) return;
+      if(!confirm("Çıxmaq istədiyinizə əminsiniz?")) return;
+      loggedIn=false; stopLive();
+      ["appHome","appKassa","appCustomers","historyPanel"].forEach(v=>document.getElementById(v).style.display="none");
+      tbody.innerHTML=""; snapshotsDiv.innerHTML=""; umumiEl.textContent="0";
+      loginDiv.style.display="block"; setStatus("Çıxıldı"); try{await signOut(auth);}catch(e){}
+    };
+
     openKassaBtn.onclick=()=> showView("appKassa");
     openCustomersBtn.onclick=()=> showView("appCustomers");
     homeBtn1.onclick=()=> showView("appHome");
     homeBtn2.onclick=()=> showView("appHome");
 
-    // Müştərilər modulu (lokal)
-    let customers=[];
-    const customerBody=document.getElementById("customerBody");
-    const addCustomerBtn=document.getElementById("addCustomerBtn");
+    // ==== KASSA FUNKSİYALARI ====
+    function startLive(){
+      stopLive();
+      const q=query(rowsCol, orderBy("createdAt","asc"));
+      unsubscribeLive=onSnapshot(q,(snap)=>{
+        if(!loggedIn) return;
+        let docs=[]; snap.forEach(d=>docs.push({id:d.id,data:d.data()}));
+        renderFromDocs(docs); setStatus("Firestore OK");
+      },err=> setStatus("Xəta:"+err.message));
+    }
+    function stopLive(){ if(unsubscribeLive){unsubscribeLive();unsubscribeLive=null;} }
 
+    function renderFromDocs(docs){
+      tbody.innerHTML=""; let total=0,idx=0;
+      docs.forEach(({id,data})=>{
+        const tr=createRow(id,data,idx); tbody.appendChild(tr);
+        for(let i=1;i<=5;i++) total+=Number(data["n"+i]??0)||0; idx++;
+      });
+      umumiEl.textContent=fmt(total);
+    }
+
+    function createRow(docId,data,index){
+      const tr=document.createElement("tr"); tr.dataset.id=docId;
+      const tdNo=document.createElement("td"); tdNo.textContent=index+1; tr.appendChild(tdNo);
+      const tdAcc=document.createElement("td");
+      const inpAcc=document.createElement("input"); inpAcc.value=data.account||""; inpAcc.placeholder="Hesab";
+      inpAcc.onblur=()=> updateDoc(doc(db,"rows",docId),{account:inpAcc.value??""});
+      tdAcc.appendChild(inpAcc); tr.appendChild(tdAcc);
+
+      const inputs=[];
+      for(let i=1;i<=5;i++){
+        const td=document.createElement("td");
+        const inp=document.createElement("input"); inp.type="number"; inp.value=data["n"+i]??"";
+        inp.onblur=()=> updateDoc(doc(db,"rows",docId),{["n"+i]: inp.value===""? null:Number(inp.value)});
+        td.appendChild(inp); tr.appendChild(td); inputs.push(inp);
+      }
+
+      const tdOps=document.createElement("td"); const ops=document.createElement("div"); ops.className="ops";
+
+      const btnSum=document.createElement("button"); btnSum.className="sum"; btnSum.textContent="Cəmlə";
+      btnSum.onclick=async()=>{
+        const sum=inputs.reduce((a,i)=>a+(Number(i.value)||0),0);
+        await updateDoc(doc(db,"rows",docId),{backup:{n1:Number(inputs[0].value)||null,n2:Number(inputs[1].value)||null,
+          n3:Number(inputs[2].value)||null,n4:Number(inputs[3].value)||null,n5:Number(inputs[4].value)||null},n1:sum,n2:null,n3:null,n4:null,n5:null});
+      };
+
+      const btnUndo=document.createElement("button"); btnUndo.className="undo"; btnUndo.textContent="Geri";
+      btnUndo.onclick=async()=>{
+        const snap=await getDoc(doc(db,"rows",docId)); const d=snap.data();
+        if(d.backup){ await updateDoc(doc(db,"rows",docId),{...d.backup,backup:null}); }
+      };
+
+      const btnDel=document.createElement("button"); btnDel.className="del"; btnDel.textContent="Sil";
+      btnDel.onclick=()=> deleteDoc(doc(db,"rows",docId));
+
+      ops.appendChild(btnSum); ops.appendChild(btnUndo); ops.appendChild(btnDel);
+      tdOps.appendChild(ops); tr.appendChild(tdOps);
+      return tr;
+    }
+
+    yeniBtn.onclick=()=> addDoc(rowsCol,{account:"",n1:null,n2:null,n3:null,n4:null,n5:null,createdAt:serverTimestamp(),backup:null});
+
+    // ==== MÜŞTƏRİLƏR (lokal) ====
+    let customers=[];
     function renderCustomers(){
       customerBody.innerHTML="";
       customers.forEach((c,i)=>{
         const tr=document.createElement("tr");
-        tr.innerHTML=`<td>${i+1}</td>
-        <td>${c.name}</td><td>${c.phone}</td><td>${c.addr}</td>
+        tr.innerHTML=`<td>${i+1}</td><td>${c.name}</td><td>${c.phone}</td><td>${c.addr}</td>
         <td><button onclick="delCustomer(${i})">Sil</button></td>`;
         customerBody.appendChild(tr);
       });
     }
-    window.delCustomer=function(i){ customers.splice(i,1); renderCustomers(); };
+    window.delCustomer=(i)=>{ customers.splice(i,1); renderCustomers(); };
     addCustomerBtn.onclick=()=>{
-      const name=prompt("Müştərinin adı:");
-      if(!name) return;
-      const phone=prompt("Telefon:");
-      const addr=prompt("Ünvan:");
+      const name=prompt("Ad Soyad:"); if(!name) return;
+      const phone=prompt("Telefon:"); const addr=prompt("Ünvan:");
       customers.push({name,phone,addr}); renderCustomers();
     };
   </script>

@@ -2,7 +2,7 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8">
-  <title>UNİVERSAL — KASSA SİSTEMİ</title>
+  <title>UNİVERSAL KASSA SİSTEMİ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -13,7 +13,6 @@
     .wrap { max-width: 1200px; margin: 0 auto; }
     .card { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.04); padding:12px; }
 
-    /* Top bar (auth/ümumi alətlər) */
     .toolbar { display:flex; gap:8px; align-items:center; margin:8px 0; flex-wrap:wrap; }
     .toolbar button { border:1px solid var(--border); background:#fff; color:#111; padding:8px 10px; border-radius:8px; font-weight:600; cursor:pointer; }
     .toolbar button:hover { background:#f8fafc; }
@@ -21,25 +20,23 @@
 
     #status { margin:8px 0; padding:8px; border:1px dashed var(--border); border-radius:10px; background:#fafafa; font-size:13px; color:#374151; }
 
-    /* Modul naviqasiyası */
-    .modules { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
+    .modules { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; justify-content:center; }
     .modules button {
       border:1px solid var(--border); background:#fff; padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer;
     }
-    .modules button.active { background:var(--dark); color:#fff; border-color:var(--dark); }
-    .hint { font-size:12px; color:#555; margin-left:4px; }
+    .modules button:hover { background:#f8fafc; }
 
-    /* Cədvəl (Kassa) */
     table { width:100%; border-collapse: collapse; table-layout: fixed; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
     thead th { position:sticky; top:0; z-index:1; background:var(--dark); color:#ffffff; padding:10px; font-size:16px; }
     th, td { border:1px solid var(--border); text-align:center; padding:4px; }
-    th:nth-child(1), td:nth-child(1) { width:40px; }     /* # dar */
-    th:nth-child(2), td:nth-child(2) { width:220px; }   /* Hesab geniş */
-    th:nth-child(8), td:nth-child(8) { width:240px; }   /* Əməliyyat geniş */
+    th:nth-child(1), td:nth-child(1) { width:40px; }
+    th:nth-child(2), td:nth-child(2) { width:220px; }
+    th:nth-child(8), td:nth-child(8) { width:240px; }
     th:nth-child(1) { background:var(--darker); color:#fff; font-weight:800; }
     td:nth-child(1) { background:var(--darker); color:#fff; font-weight:800; }
     tbody tr:nth-child(even){ background:#fcfcfc; }
     tbody tr:hover { background:#f6faff; transition: background .12s; }
+
     td input { width: 96%; padding:6px; font-size:16px; font-weight:700; text-align:center;
                background:#fff; border:1px solid var(--border); border-radius:6px; }
     td input:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,0.22); }
@@ -54,33 +51,27 @@
     .yekun { background:var(--green); color:#fff; font-weight:800; font-size:24px; text-align:right; padding-right:20px; }
     tfoot .yekun { position: sticky; bottom: 0; z-index: 1; }
 
-    /* Login */
     #login { text-align:center; margin-top: 36px; }
     #login input { font-size:16px; padding:10px 12px; width:240px; margin:6px 0; border:1px solid var(--border); border-radius:10px; }
     #login input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.2); }
     #login button { font-size:16px; padding:10px 18px; border-radius:10px; background:var(--green); color:#fff; border:none; min-width:180px; }
     #login button:hover { filter:brightness(.97); }
 
-    /* Panellər */
-    #topToolbar, #appHome, #appKassa, #appSales, #appCosts, #appReports, #historyPanel { display:none; }
+    #topToolbar, #appHome, #appKassa, #historyPanel { display:none; }
     .snap { border:1px solid var(--border); border-radius:10px; padding:10px; margin:10px 0; background:#fff; }
     .snap table { width:100%; border-collapse:collapse; font-size:14px; }
-    .snap th, .snap td { border:1px solid #eee; padding:6px; }
-    .snap th { background:#fafafa; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div id="status">Status: Yoxlanılır...</div>
 
-    <!-- Üst Toolbar (Tarixçə, Cari vəziyyət, Çıxış) -->
     <div class="toolbar" id="topToolbar">
       <button id="historyBtn">Tarixçə</button>
       <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
       <button id="logoutBtn">Çıxış</button>
     </div>
 
-    <!-- Login -->
     <div id="login" class="card">
       <h2>KASSA HESABATI</h2>
       <input type="text" id="user" placeholder="İstifadəçi adı"><br>
@@ -89,21 +80,21 @@
       <p id="error" style="color:#dc2626;"></p>
     </div>
 
-    <!-- Home (Modul seçimi) -->
+    <!-- Modul səhifəsi -->
     <div id="appHome" class="card">
       <h2>MODULLAR</h2>
       <div class="modules">
-        <button data-view="appKassa" class="modBtn active">KASSA</button>
-        <button data-view="appSales" class="modBtn">SATIŞLAR <span class="hint">(şablon)</span></button>
-        <button data-view="appCosts" class="modBtn">XƏRCLƏR <span class="hint">(şablon)</span></button>
-        <button data-view="appReports" class="modBtn">HESABATLAR <span class="hint">(şablon)</span></button>
+        <button id="openKassaBtn">KASSA</button>
       </div>
     </div>
 
-    <!-- KASSA MODULU -->
+    <!-- Kassa -->
     <div id="appKassa" class="card">
       <h2>KASSA HESABATI</h2>
-      <div class="toolbar"><button id="yeniBtn">+ Sətir əlavə et</button></div>
+      <div class="toolbar">
+        <button id="homeBtn">Ana səhifə</button>
+        <button id="yeniBtn">+ Sətir əlavə et</button>
+      </div>
       <div id="liveWrap">
         <table>
           <thead>
@@ -117,41 +108,20 @@
       </div>
     </div>
 
-    <!-- SATIŞLAR MODULU (şablon) -->
-    <div id="appSales" class="card">
-      <h2>SATIŞLAR</h2>
-      <p>Buraya satış əməliyyatları üçün cədvəl/formalar əlavə ediləcək.</p>
-    </div>
-
-    <!-- XƏRCLƏR MODULU (şablon) -->
-    <div id="appCosts" class="card">
-      <h2>XƏRCLƏR</h2>
-      <p>Buraya xərclərin uçotu üçün cədvəl/formalar əlavə ediləcək.</p>
-    </div>
-
-    <!-- HESABATLAR MODULU (şablon) -->
-    <div id="appReports" class="card">
-      <h2>HESABATLAR</h2>
-      <p>Burada aylıq/illik hesabatlar, eksport (CSV/Excel/PDF) olacaq.</p>
-    </div>
-
-    <!-- Tarixçə paneli -->
+    <!-- Tarixçə -->
     <div id="historyPanel" class="card">
       <h2>TARİXÇƏ</h2>
       <div id="snapshots"></div>
     </div>
   </div>
 
-  <!-- Tam funksional JS -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
     import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-    import {
-      getFirestore, collection, addDoc, updateDoc, deleteDoc,
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc,
       doc, onSnapshot, serverTimestamp, query, orderBy, getDocs, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    // 🔑 Sənin real config-in
     const firebaseConfig = {
       apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
       authDomain: "kassa-11972.firebaseapp.com",
@@ -166,7 +136,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // --- Ümumi elementlər ---
     const statusEl = document.getElementById("status");
     const setStatus = (t)=> statusEl.textContent = "Status: " + t;
     const fmt = (n)=> new Intl.NumberFormat("az-AZ").format(n);
@@ -174,9 +143,11 @@
     const loginDiv = document.getElementById("login");
     const topToolbar = document.getElementById("topToolbar");
     const appHome = document.getElementById("appHome");
-    const modButtons = Array.from(document.querySelectorAll(".modBtn"));
+    const appKassa = document.getElementById("appKassa");
+    const openKassaBtn = document.getElementById("openKassaBtn");
+    const homeBtn = document.getElementById("homeBtn");
+    const historyPanel = document.getElementById("historyPanel");
 
-    // --- Kassa elementləri ---
     const rowsCol = collection(db, "rows");
     const snapsCol = collection(db, "snapshots");
     const tbody = document.getElementById("tbody");
@@ -185,301 +156,74 @@
     const historyBtn = document.getElementById("historyBtn");
     const backLiveBtn = document.getElementById("backLiveBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const historyPanel = document.getElementById("historyPanel");
     const snapshotsDiv = document.getElementById("snapshots");
 
-    let loggedIn=false, unsubscribeLive=null, isEditing=false, hasPendingSnapshot=false, latestDocs=[], authReady=false;
+    let loggedIn=false, unsubscribeLive=null, latestDocs=[], authReady=false;
 
-    // ==== Modul naviqasiyası ====
     function showView(id){
-      // hamısını gizlət
-      ["appHome","appKassa","appSales","appCosts","appReports","historyPanel"].forEach(v=>{
-        const el = document.getElementById(v);
-        if(el) el.style.display = "none";
+      ["appHome","appKassa","historyPanel"].forEach(v=>{
+        const el=document.getElementById(v); if(el) el.style.display="none";
       });
-      // seçilmişi göstər
-      const sel = document.getElementById(id);
-      if(sel) sel.style.display = "block";
-      // aktiv düyməni qeyd et
-      modButtons.forEach(b=> b.classList.toggle("active", b.dataset.view === id));
+      document.getElementById(id).style.display="block";
     }
-    // Modul düymələri klik
-    modButtons.forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const target = btn.dataset.view;
-        showView(target);
-      });
-    });
 
-    // ==== Auth vəziyyəti ====
     onAuthStateChanged(auth, async (user)=>{
-      if(user){
-        authReady = true;
-        setStatus("Auth OK (istifadəçi aktivdir)");
+      if(user){ authReady = true; setStatus("Auth OK");
         if(loggedIn && !unsubscribeLive) startLive();
-      } else {
-        authReady = false;
-        setStatus("Auth yoxdur, qoşulur...");
-        try { await signInAnonymously(auth); }
-        catch(e){ setStatus("Auth Xəta: " + e.message); }
+      } else { authReady = false; setStatus("Auth yoxdur...");
+        try{ await signInAnonymously(auth);}catch(e){setStatus("Xəta:"+e.message);}
       }
     });
-    try { await signInAnonymously(auth); } catch(e){}
+    try{ await signInAnonymously(auth);}catch(e){}
 
-    // Fokus zamanı canlı snapshot müdaxiləsini gecikdir
-    tbody.addEventListener('focusin',()=>{ isEditing=true; }, true);
-    tbody.addEventListener('focusout',()=>{ setTimeout(()=>{ isEditing=false; if(hasPendingSnapshot){ renderFromDocs(latestDocs); hasPendingSnapshot=false; } }, 80); }, true);
-
-    // ==== Giriş ====
     window.giris = function(){
-      const u = document.getElementById("user").value.trim();
-      const p = document.getElementById("pass").value.trim();
+      const u=document.getElementById("user").value.trim();
+      const p=document.getElementById("pass").value.trim();
       if(u==="admin" && p==="1234"){
-        loggedIn = true;
-        loginDiv.style.display = "none";
-        topToolbar.style.display = "flex";
-        appHome.style.display = "block";     // əvvəlcə modul seçimi
-        showView("appKassa");                // default olaraq KASSA aç
-        if(authReady) startLive();
-      }else{
-        document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
-      }
+        loggedIn=true; loginDiv.style.display="none"; topToolbar.style.display="flex";
+        showView("appHome"); if(authReady) startLive();
+      }else document.getElementById("error").innerText="İstifadəçi adı/şifrə səhvdir!";
     };
 
-    // ==== Logout ====
-    logoutBtn.onclick = async () => {
+    logoutBtn.onclick = async()=>{
       if(!loggedIn) return;
       if(!confirm("Çıxmaq istədiyinizə əminsiniz?")) return;
-      loggedIn=false; stopLive();
-      topToolbar.style.display="none";
-      ["appHome","appKassa","appSales","appCosts","appReports","historyPanel"].forEach(v=>{
-        const el = document.getElementById(v); if(el) el.style.display="none";
-      });
+      loggedIn=false; stopLive(); topToolbar.style.display="none";
+      ["appHome","appKassa","historyPanel"].forEach(v=>document.getElementById(v).style.display="none");
       tbody.innerHTML=""; snapshotsDiv.innerHTML=""; umumiEl.textContent="0";
-      loginDiv.style.display="block"; setStatus("Çıxıldı");
-      try{ await signOut(auth); }catch(e){}
+      loginDiv.style.display="block"; setStatus("Çıxıldı"); try{await signOut(auth);}catch(e){}
     };
 
-    // ==== Kassa: Live dinləyici ====
+    openKassaBtn.onclick=()=> showView("appKassa");
+    homeBtn.onclick=()=> showView("appHome");
+
     function startLive(){
       stopLive();
-      const q = query(rowsCol, orderBy("createdAt","asc"));
-      unsubscribeLive = onSnapshot(q, (snap)=>{
-        if(!loggedIn) return;
-        latestDocs = [];
-        snap.forEach(d => latestDocs.push({id:d.id, data:d.data()}));
-        if(isEditing) hasPendingSnapshot = true; else renderFromDocs(latestDocs);
-        setStatus("Firestore OK (real-time)");
-      }, (err)=> setStatus("Firestore Xəta: " + err.message));
+      const q=query(rowsCol, orderBy("createdAt","asc"));
+      unsubscribeLive=onSnapshot(q,snap=>{
+        if(!loggedIn)return;
+        latestDocs=[]; snap.forEach(d=>latestDocs.push({id:d.id,data:d.data()}));
+        renderFromDocs(latestDocs); setStatus("Firestore OK");
+      },err=>setStatus("Xəta:"+err.message));
     }
-    function stopLive(){ if(unsubscribeLive){ unsubscribeLive(); unsubscribeLive=null; } }
-
-    async function fetchAndRender(){
-      const q = query(rowsCol, orderBy("createdAt","asc"));
-      const snap = await getDocs(q); latestDocs = [];
-      snap.forEach(d => latestDocs.push({id:d.id, data:d.data()}));
-      renderFromDocs(latestDocs);
-    }
+    function stopLive(){ if(unsubscribeLive){unsubscribeLive();unsubscribeLive=null;} }
 
     function renderFromDocs(docs){
-      tbody.innerHTML = "";
-      let total = 0, idx = 0;
-      docs.forEach(({id, data})=>{
-        const tr = createRow(id, data, idx);
-        tbody.appendChild(tr);
-        for(let i=1;i<=5;i++) total += Number(data["n"+i] ?? 0) || 0;
-        idx++;
+      tbody.innerHTML=""; let total=0,idx=0;
+      docs.forEach(({id,data})=>{
+        const tr=createRow(id,data,idx); tbody.appendChild(tr);
+        for(let i=1;i<=5;i++) total+=Number(data["n"+i]??0)||0; idx++;
       });
-      umumiEl.textContent = fmt(total);
+      umumiEl.textContent=fmt(total);
     }
 
-    function setNegClass(inputEl, value){
-      if(value !== null && !Number.isNaN(value) && Number(value) < 0) inputEl.classList.add('neg');
-      else inputEl.classList.remove('neg');
-    }
-
-    function createRow(docId, data, index){
-      const tr = document.createElement("tr"); tr.dataset.id = docId;
-
-      const tdNo = document.createElement("td"); tdNo.textContent = index + 1; tr.appendChild(tdNo);
-
-      const tdAcc = document.createElement("td");
-      const inpAcc = document.createElement("input");
-      inpAcc.type="text"; inpAcc.placeholder="Hesab adı"; inpAcc.value = data.account || "";
-      inpAcc.onblur = async () => {
-        if(!loggedIn) return;
-        await updateDoc(doc(db,"rows",docId), { account: inpAcc.value ?? "" });
-        await saveSnapshot(); await fetchAndRender();
-      };
-      tdAcc.appendChild(inpAcc); tr.appendChild(tdAcc);
-
-      const numberInputs = [];
-      for(let i=1;i<=5;i++){
-        const td = document.createElement("td");
-        const inp = document.createElement("input");
-        inp.type="number"; inp.step="any";
-        const current = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
-        inp.value = current;
-        setNegClass(inp, current === "" ? null : Number(current));
-
-        inp.onblur = async () => {
-          if(!loggedIn) return;
-          const v = inp.value === "" ? null : Number(inp.value);
-          setNegClass(inp, v);
-          await updateDoc(doc(db,"rows",docId), { ["n"+i]: v });
-          await saveSnapshot(); await fetchAndRender();
-        };
-        td.appendChild(inp); tr.appendChild(td);
-        numberInputs.push(inp);
-      }
-
-      const tdOps = document.createElement("td");
-      const ops = document.createElement("div"); ops.className="ops";
-
-      const btnSum = document.createElement("button");
-      btnSum.textContent = "Cəmlə";
-      btnSum.onclick = async () => {
-        if(!loggedIn) return;
-        const cur = {
-          n1: Number(numberInputs[0].value) || 0,
-          n2: Number(numberInputs[1].value) || 0,
-          n3: Number(numberInputs[2].value) || 0,
-          n4: Number(numberInputs[3].value) || 0,
-          n5: Number(numberInputs[4].value) || 0,
-        };
-        const backup = {
-          n1: numberInputs[0].value === "" ? null : Number(numberInputs[0].value),
-          n2: numberInputs[1].value === "" ? null : Number(numberInputs[1].value),
-          n3: numberInputs[2].value === "" ? null : Number(numberInputs[2].value),
-          n4: numberInputs[3].value === "" ? null : Number(numberInputs[3].value),
-          n5: numberInputs[4].value === "" ? null : Number(numberInputs[4].value),
-        };
-        const sum = cur.n1 + cur.n2 + cur.n3 + cur.n4 + cur.n5;
-
-        await updateDoc(doc(db,"rows",docId), { backup, n1: sum, n2: null, n3: null, n4: null, n5: null });
-        await saveSnapshot(); await fetchAndRender();
-      };
-
-      const btnUndo = document.createElement("button");
-      btnUndo.textContent = "Geri";
-      btnUndo.onclick = async () => {
-        if(!loggedIn) return;
-        const rowRef = doc(db,"rows",docId);
-        const rowSnap = await getDoc(rowRef);
-        const d = rowSnap.data();
-        if(d && d.backup){
-          await updateDoc(rowRef, {
-            n1: d.backup.n1 ?? null,
-            n2: d.backup.n2 ?? null,
-            n3: d.backup.n3 ?? null,
-            n4: d.backup.n4 ?? null,
-            n5: d.backup.n5 ?? null,
-            backup: null
-          });
-          await saveSnapshot(); await fetchAndRender();
-        } else {
-          alert("Geri üçün əvvəlcə Cəmlə istifadə olunmalıdır!");
-        }
-      };
-
-      const btnDel = document.createElement("button");
-      btnDel.textContent = "Sil";
-      btnDel.onclick = async () => {
-        if(!loggedIn) return;
-        if(!confirm("Bu sətir silinsin?")) return;
-        await deleteDoc(doc(db,"rows",docId));
-        await saveSnapshot(); await fetchAndRender();
-      };
-
-      ops.appendChild(btnSum); ops.appendChild(btnUndo); ops.appendChild(btnDel);
-      tdOps.appendChild(ops); tr.appendChild(tdOps);
-
+    function createRow(docId,data,index){
+      const tr=document.createElement("tr"); tr.dataset.id=docId;
+      tr.innerHTML=`<td>${index+1}</td>
+      <td><input type="text" value="${data.account||""}" placeholder="Hesab adı"></td>
+      ${[1,2,3,4,5].map(i=>`<td><input type="number" value="${data["n"+i]??""}"></td>`).join("")}
+      <td class="ops"><button>Cəmlə</button><button>Geri</button><button>Sil</button></td>`;
       return tr;
-    }
-
-    // Yeni sətir
-    yeniBtn.onclick = async () => {
-      if(!loggedIn) return;
-      await addDoc(rowsCol, {
-        account:"", n1:null, n2:null, n3:null, n4:null, n5:null,
-        createdAt: serverTimestamp(), backup: null
-      });
-      await saveSnapshot(); await fetchAndRender();
-    };
-
-    // Tarixçə snapshot
-    async function saveSnapshot(){
-      try{
-        if(!loggedIn) return;
-        const qRows = query(rowsCol, orderBy("createdAt","asc"));
-        const snap = await getDocs(qRows);
-        const rows = []; let i = 1;
-        snap.forEach(docu=>{
-          const r = docu.data();
-          rows.push({
-            no: i++,
-            account: r.account || "",
-            n1: r.n1 ?? "",
-            n2: r.n2 ?? "",
-            n3: r.n3 ?? "",
-            n4: r.n4 ?? "",
-            n5: r.n5 ?? ""
-          });
-        });
-        await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
-      }catch(e){
-        console.warn("Tarixçə yazılmadı:", e.message);
-      }
-    }
-
-    // Tarixçə paneli
-    historyBtn.onclick = async () => {
-      if(!loggedIn) return;
-      showView("historyPanel");
-      backLiveBtn.style.display = "inline-block";
-      await renderHistory();
-    };
-    backLiveBtn.onclick = () => {
-      if(!loggedIn) return;
-      showView("appKassa");
-      backLiveBtn.style.display = "none";
-    };
-
-    async function renderHistory(){
-      try{
-        snapshotsDiv.innerHTML = "Yüklənir...";
-        const qSnaps = query(snapsCol, orderBy("createdAt","desc"));
-        const snap = await getDocs(qSnaps);
-        if(snap.empty){ snapshotsDiv.innerHTML = "<i>Hələ tarixçə yoxdur.</i>"; return; }
-        const parts = [];
-        snap.forEach(s=>{
-          const d = s.data();
-          const when = d.createdAt?.toDate?.()
-            ? d.createdAt.toDate().toLocaleString("az-AZ")
-            : "(vaxt yoxdur)";
-          const rows = d.rows || [];
-          let rowsHtml = `<table><thead><tr>
-            <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
-          </tr></thead><tbody>`;
-          rows.forEach(r=>{
-            rowsHtml += `<tr>
-              <td>${r.no ?? ""}</td>
-              <td>${escapeHtml(r.account ?? "")}</td>
-              <td>${r.n1 ?? ""}</td><td>${r.n2 ?? ""}</td><td>${r.n3 ?? ""}</td><td>${r.n4 ?? ""}</td><td>${r.n5 ?? ""}</td>
-            </tr>`;
-          });
-          rowsHtml += `</tbody></table>`;
-          parts.push(`<div class="snap"><h4>${when}</h4>${rowsHtml}</div>`);
-        });
-        snapshotsDiv.innerHTML = parts.join("");
-      }catch(e){
-        snapshotsDiv.innerHTML = "";
-        alert("Tarixçə oxuna bilmədi: " + e.message);
-      }
-    }
-
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
   </script>
 </body>

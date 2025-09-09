@@ -22,10 +22,8 @@
 </head>
 <body>
 
-  <!-- Status paneli -->
   <div id="status">Status: Yoxlanılır...</div>
 
-  <!-- LOGIN -->
   <div id="login">
     <h2>Kassa Sisteminə Giriş</h2>
     <input type="text" id="user" placeholder="İstifadəçi adı"><br>
@@ -34,7 +32,6 @@
     <p id="error" style="color:red;"></p>
   </div>
 
-  <!-- APP -->
   <div id="app">
     <h2>Kassa Hesabatı</h2>
 
@@ -64,7 +61,6 @@
     </table>
   </div>
 
-  <!-- Firebase SDK (modular) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
@@ -73,7 +69,7 @@
       doc, onSnapshot, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    // ✅ Sənin Firebase config-in
+    // Sənin Firebase config-in
     const firebaseConfig = {
       apiKey: "AIzaSyD1K5MnVvvHGIdiOTlGjQcqBqtIId7Tkz8",
       authDomain: "kassa-11972.firebaseapp.com",
@@ -119,10 +115,12 @@
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
 
+      // №
       const tdNo = document.createElement("td");
       tdNo.textContent = index + 1;
       tr.appendChild(tdNo);
 
+      // Hesab
       const tdAcc = document.createElement("td");
       const inpAcc = document.createElement("input");
       inpAcc.type = "text";
@@ -132,6 +130,7 @@
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
 
+      // 1..5
       const numberInputs = [];
       for (let i = 1; i <= 5; i++) {
         const td = document.createElement("td");
@@ -147,38 +146,45 @@
         numberInputs.push(inp);
       }
 
-      // Əməliyyat: Cəmlə + Geri + Sil
+      // Əməliyyatlar
       const tdOps = document.createElement("td");
       const ops = document.createElement("div");
       ops.className = "ops";
 
+      // Cəmlə: n1 = n1+n2+n3+n4+n5 ; n2..n5 = null ; BACKUP saxla (n1..n5)
       const btnSum = document.createElement("button");
       btnSum.textContent = "Cəmlə";
       btnSum.onclick = async () => {
-        const backup = {
-          n2: data.n2 ?? null,
-          n3: data.n3 ?? null,
-          n4: data.n4 ?? null,
-          n5: data.n5 ?? null
+        // Hazır dəyərləri oxu
+        const cur = {
+          n1: Number(numberInputs[0].value) || 0,
+          n2: Number(numberInputs[1].value) || 0,
+          n3: Number(numberInputs[2].value) || 0,
+          n4: Number(numberInputs[3].value) || 0,
+          n5: Number(numberInputs[4].value) || 0,
         };
-        const v1 = Number(numberInputs[0].value) || 0;
-        const v2 = Number(numberInputs[1].value) || 0;
-        const v3 = Number(numberInputs[2].value) || 0;
-        const v4 = Number(numberInputs[3].value) || 0;
-        const v5 = Number(numberInputs[4].value) || 0;
-        const sum = v1 + v2 + v3 + v4 + v5;
+        const sum = cur.n1 + cur.n2 + cur.n3 + cur.n4 + cur.n5;
 
         await updateDoc(doc(db, "rows", docId), {
-          n1: sum, n2: null, n3: null, n4: null, n5: null, backup: backup
+          backup: {
+            n1: data.n1 ?? null,
+            n2: data.n2 ?? null,
+            n3: data.n3 ?? null,
+            n4: data.n4 ?? null,
+            n5: data.n5 ?? null
+          },
+          n1: sum,
+          n2: null, n3: null, n4: null, n5: null
         });
       };
 
+      // Geri: backup-dakı n1..n5 tam bərpa olunsun
       const btnUndo = document.createElement("button");
       btnUndo.textContent = "Geri";
       btnUndo.onclick = async () => {
         if (data.backup) {
           await updateDoc(doc(db, "rows", docId), {
-            n1: null,
+            n1: data.backup.n1 ?? null,
             n2: data.backup.n2 ?? null,
             n3: data.backup.n3 ?? null,
             n4: data.backup.n4 ?? null,
@@ -233,7 +239,8 @@
         await addDoc(rowsCol, {
           account: "",
           n1: null, n2: null, n3: null, n4: null, n5: null,
-          createdAt: serverTimestamp(), backup: null
+          createdAt: serverTimestamp(),
+          backup: null
         });
       } catch (e) {
         setStatus("AddDoc Xəta: " + e.message);

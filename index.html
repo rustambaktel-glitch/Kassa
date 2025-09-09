@@ -2,61 +2,68 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8">
-  <title>KASSA SISTEMI — Compact Pro</title>
+  <title>UNİVERSAL — KASSA SİSTEMİ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root{
+      --dark:#1f2937; --darker:#374151; --border:#e5e7eb; --muted:#fafafa; --green:#22c55e; --red:#ef4444; --blue:#2563eb;
+    }
     body { font-family: Arial, sans-serif; margin: 18px; background:#ffffff; color:#111; }
     h2 { margin: 0 0 12px 0; font-size: 22px; font-weight: 800; text-align:center; color:#111; text-transform: uppercase; }
     .wrap { max-width: 1200px; margin: 0 auto; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.04); padding:12px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.04); padding:12px; }
 
+    /* Top bar (auth/ümumi alətlər) */
     .toolbar { display:flex; gap:8px; align-items:center; margin:8px 0; flex-wrap:wrap; }
-    .toolbar button { border:1px solid #e5e7eb; background:#fff; color:#111; padding:8px 10px; border-radius:8px; font-weight:600; cursor:pointer; }
+    .toolbar button { border:1px solid var(--border); background:#fff; color:#111; padding:8px 10px; border-radius:8px; font-weight:600; cursor:pointer; }
     .toolbar button:hover { background:#f8fafc; }
-    #logoutBtn { background:#ef4444; border-color:#ef4444; color:#fff; margin-left:auto; }
+    #logoutBtn { background:var(--red); border-color:var(--red); color:#fff; margin-left:auto; }
 
-    #status { margin:8px 0; padding:8px; border:1px dashed #e5e7eb; border-radius:10px; background:#fafafa; font-size:13px; color:#374151; }
+    #status { margin:8px 0; padding:8px; border:1px dashed var(--border); border-radius:10px; background:#fafafa; font-size:13px; color:#374151; }
 
-    table { width:100%; border-collapse: collapse; table-layout: fixed; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
-    thead th { position:sticky; top:0; z-index:1; background:#1f2937; color:#ffffff; padding:10px; font-size:16px; }
-    th, td { border:1px solid #e5e7eb; text-align:center; padding:4px; }
+    /* Modul naviqasiyası */
+    .modules { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
+    .modules button {
+      border:1px solid var(--border); background:#fff; padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer;
+    }
+    .modules button.active { background:var(--dark); color:#fff; border-color:var(--dark); }
+    .hint { font-size:12px; color:#555; margin-left:4px; }
 
-    /* Sütun enləri */
+    /* Cədvəl (Kassa) */
+    table { width:100%; border-collapse: collapse; table-layout: fixed; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    thead th { position:sticky; top:0; z-index:1; background:var(--dark); color:#ffffff; padding:10px; font-size:16px; }
+    th, td { border:1px solid var(--border); text-align:center; padding:4px; }
     th:nth-child(1), td:nth-child(1) { width:40px; }     /* # dar */
     th:nth-child(2), td:nth-child(2) { width:220px; }   /* Hesab geniş */
     th:nth-child(8), td:nth-child(8) { width:240px; }   /* Əməliyyat geniş */
-
-    /* # sütununu tündləşdir */
-    th:nth-child(1) { background:#374151; color:#fff; font-weight:800; }
-    td:nth-child(1) { background:#374151; color:#fff; font-weight:800; }
-
+    th:nth-child(1) { background:var(--darker); color:#fff; font-weight:800; }
+    td:nth-child(1) { background:var(--darker); color:#fff; font-weight:800; }
     tbody tr:nth-child(even){ background:#fcfcfc; }
     tbody tr:hover { background:#f6faff; transition: background .12s; }
-
     td input { width: 96%; padding:6px; font-size:16px; font-weight:700; text-align:center;
-               background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
-    td input:focus { outline:none; border-color:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.22); }
+               background:#fff; border:1px solid var(--border); border-radius:6px; }
+    td input:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,0.22); }
     td input[type="number"].neg { color:#dc2626; }
 
     .ops { display:flex; gap:6px; justify-content:center; }
-    .ops button { border-radius:8px; border:1px solid #e5e7eb; background:#fff; padding:6px 10px; font-weight:700; cursor:pointer; }
-    .ops button:nth-child(1){ background:#2563eb; border-color:#2563eb; color:#fff; }
+    .ops button { border-radius:8px; border:1px solid var(--border); background:#fff; padding:6px 10px; font-weight:700; cursor:pointer; }
+    .ops button:nth-child(1){ background:var(--blue); border-color:var(--blue); color:#fff; }
     .ops button:nth-child(2){ background:#e5e7eb; color:#111; }
-    .ops button:nth-child(3){ background:#ef4444; border-color:#ef4444; color:#fff; }
+    .ops button:nth-child(3){ background:var(--red); border-color:var(--red); color:#fff; }
 
-    .yekun { background:#22c55e; color:#fff; font-weight:800; font-size:24px; text-align:right; padding-right:20px; }
+    .yekun { background:var(--green); color:#fff; font-weight:800; font-size:24px; text-align:right; padding-right:20px; }
     tfoot .yekun { position: sticky; bottom: 0; z-index: 1; }
 
+    /* Login */
     #login { text-align:center; margin-top: 36px; }
-    #login input { font-size:16px; padding:10px 12px; width:240px; margin:6px 0; border:1px solid #e5e7eb; border-radius:10px; }
+    #login input { font-size:16px; padding:10px 12px; width:240px; margin:6px 0; border:1px solid var(--border); border-radius:10px; }
     #login input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.2); }
-    #login button { font-size:16px; padding:10px 18px; border-radius:10px; background:#22c55e; color:#fff; border:none; min-width:180px; }
+    #login button { font-size:16px; padding:10px 18px; border-radius:10px; background:var(--green); color:#fff; border:none; min-width:180px; }
     #login button:hover { filter:brightness(.97); }
 
-    #app { display:none; }
-    #topToolbar { display:none; margin-bottom:8px; }
-    #historyPanel { display:none; margin-top:10px; }
-    .snap { border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin:10px 0; background:#fff; }
+    /* Panellər */
+    #topToolbar, #appHome, #appKassa, #appSales, #appCosts, #appReports, #historyPanel { display:none; }
+    .snap { border:1px solid var(--border); border-radius:10px; padding:10px; margin:10px 0; background:#fff; }
     .snap table { width:100%; border-collapse:collapse; font-size:14px; }
     .snap th, .snap td { border:1px solid #eee; padding:6px; }
     .snap th { background:#fafafa; }
@@ -66,22 +73,36 @@
   <div class="wrap">
     <div id="status">Status: Yoxlanılır...</div>
 
+    <!-- Üst Toolbar (Tarixçə, Cari vəziyyət, Çıxış) -->
     <div class="toolbar" id="topToolbar">
       <button id="historyBtn">Tarixçə</button>
       <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
       <button id="logoutBtn">Çıxış</button>
     </div>
 
+    <!-- Login -->
     <div id="login" class="card">
-      <h2>Kassa Hesabatı</h2>
+      <h2>KASSA HESABATI</h2>
       <input type="text" id="user" placeholder="İstifadəçi adı"><br>
       <input type="password" id="pass" placeholder="Şifrə"><br>
       <button onclick="giris()">Daxil ol</button>
       <p id="error" style="color:#dc2626;"></p>
     </div>
 
-    <div id="app" class="card">
-      <h2>Kassa Hesabatı</h2>
+    <!-- Home (Modul seçimi) -->
+    <div id="appHome" class="card">
+      <h2>MODULLAR</h2>
+      <div class="modules">
+        <button data-view="appKassa" class="modBtn active">KASSA</button>
+        <button data-view="appSales" class="modBtn">SATIŞLAR <span class="hint">(şablon)</span></button>
+        <button data-view="appCosts" class="modBtn">XƏRCLƏR <span class="hint">(şablon)</span></button>
+        <button data-view="appReports" class="modBtn">HESABATLAR <span class="hint">(şablon)</span></button>
+      </div>
+    </div>
+
+    <!-- KASSA MODULU -->
+    <div id="appKassa" class="card">
+      <h2>KASSA HESABATI</h2>
       <div class="toolbar"><button id="yeniBtn">+ Sətir əlavə et</button></div>
       <div id="liveWrap">
         <table>
@@ -96,8 +117,27 @@
       </div>
     </div>
 
+    <!-- SATIŞLAR MODULU (şablon) -->
+    <div id="appSales" class="card">
+      <h2>SATIŞLAR</h2>
+      <p>Buraya satış əməliyyatları üçün cədvəl/formalar əlavə ediləcək.</p>
+    </div>
+
+    <!-- XƏRCLƏR MODULU (şablon) -->
+    <div id="appCosts" class="card">
+      <h2>XƏRCLƏR</h2>
+      <p>Buraya xərclərin uçotu üçün cədvəl/formalar əlavə ediləcək.</p>
+    </div>
+
+    <!-- HESABATLAR MODULU (şablon) -->
+    <div id="appReports" class="card">
+      <h2>HESABATLAR</h2>
+      <p>Burada aylıq/illik hesabatlar, eksport (CSV/Excel/PDF) olacaq.</p>
+    </div>
+
+    <!-- Tarixçə paneli -->
     <div id="historyPanel" class="card">
-      <h2>Tarixçə</h2>
+      <h2>TARİXÇƏ</h2>
       <div id="snapshots"></div>
     </div>
   </div>
@@ -126,28 +166,52 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // --- Ümumi elementlər ---
     const statusEl = document.getElementById("status");
     const setStatus = (t)=> statusEl.textContent = "Status: " + t;
     const fmt = (n)=> new Intl.NumberFormat("az-AZ").format(n);
 
+    const loginDiv = document.getElementById("login");
+    const topToolbar = document.getElementById("topToolbar");
+    const appHome = document.getElementById("appHome");
+    const modButtons = Array.from(document.querySelectorAll(".modBtn"));
+
+    // --- Kassa elementləri ---
     const rowsCol = collection(db, "rows");
     const snapsCol = collection(db, "snapshots");
-
     const tbody = document.getElementById("tbody");
     const umumiEl = document.getElementById("umumi");
     const yeniBtn = document.getElementById("yeniBtn");
     const historyBtn = document.getElementById("historyBtn");
     const backLiveBtn = document.getElementById("backLiveBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const appDiv = document.getElementById("app");
     const historyPanel = document.getElementById("historyPanel");
     const snapshotsDiv = document.getElementById("snapshots");
-    const topToolbar = document.getElementById("topToolbar");
-    const loginDiv = document.getElementById("login");
 
     let loggedIn=false, unsubscribeLive=null, isEditing=false, hasPendingSnapshot=false, latestDocs=[], authReady=false;
 
-    // Auth vəziyyəti
+    // ==== Modul naviqasiyası ====
+    function showView(id){
+      // hamısını gizlət
+      ["appHome","appKassa","appSales","appCosts","appReports","historyPanel"].forEach(v=>{
+        const el = document.getElementById(v);
+        if(el) el.style.display = "none";
+      });
+      // seçilmişi göstər
+      const sel = document.getElementById(id);
+      if(sel) sel.style.display = "block";
+      // aktiv düyməni qeyd et
+      modButtons.forEach(b=> b.classList.toggle("active", b.dataset.view === id));
+    }
+    // Modul düymələri klik
+    modButtons.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const target = btn.dataset.view;
+        showView(target);
+      });
+    });
+
+    // ==== Auth vəziyyəti ====
     onAuthStateChanged(auth, async (user)=>{
       if(user){
         authReady = true;
@@ -160,15 +224,13 @@
         catch(e){ setStatus("Auth Xəta: " + e.message); }
       }
     });
-
-    // İlk qoşulma (eyni vaxtda onAuthStateChanged də işləyəcək)
     try { await signInAnonymously(auth); } catch(e){}
 
-    // Fokus zamanı “re-render” gecikdir
+    // Fokus zamanı canlı snapshot müdaxiləsini gecikdir
     tbody.addEventListener('focusin',()=>{ isEditing=true; }, true);
     tbody.addEventListener('focusout',()=>{ setTimeout(()=>{ isEditing=false; if(hasPendingSnapshot){ renderFromDocs(latestDocs); hasPendingSnapshot=false; } }, 80); }, true);
 
-    // Vizual login
+    // ==== Giriş ====
     window.giris = function(){
       const u = document.getElementById("user").value.trim();
       const p = document.getElementById("pass").value.trim();
@@ -176,28 +238,29 @@
         loggedIn = true;
         loginDiv.style.display = "none";
         topToolbar.style.display = "flex";
-        appDiv.style.display = "block";
-        historyPanel.style.display = "none";
-        backLiveBtn.style.display = "none";
+        appHome.style.display = "block";     // əvvəlcə modul seçimi
+        showView("appKassa");                // default olaraq KASSA aç
         if(authReady) startLive();
       }else{
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
     };
 
-    // Logout
+    // ==== Logout ====
     logoutBtn.onclick = async () => {
       if(!loggedIn) return;
       if(!confirm("Çıxmaq istədiyinizə əminsiniz?")) return;
       loggedIn=false; stopLive();
-      topToolbar.style.display="none"; appDiv.style.display="none";
-      historyPanel.style.display="none"; backLiveBtn.style.display="none";
+      topToolbar.style.display="none";
+      ["appHome","appKassa","appSales","appCosts","appReports","historyPanel"].forEach(v=>{
+        const el = document.getElementById(v); if(el) el.style.display="none";
+      });
       tbody.innerHTML=""; snapshotsDiv.innerHTML=""; umumiEl.textContent="0";
       loginDiv.style.display="block"; setStatus("Çıxıldı");
       try{ await signOut(auth); }catch(e){}
     };
 
-    // Live dinləyici
+    // ==== Kassa: Live dinləyici ====
     function startLive(){
       stopLive();
       const q = query(rowsCol, orderBy("createdAt","asc"));
@@ -235,7 +298,6 @@
       else inputEl.classList.remove('neg');
     }
 
-    // Sətir
     function createRow(docId, data, index){
       const tr = document.createElement("tr"); tr.dataset.id = docId;
 
@@ -373,16 +435,13 @@
     // Tarixçə paneli
     historyBtn.onclick = async () => {
       if(!loggedIn) return;
-      appDiv.style.display = "none";
-      historyPanel.style.display = "block";
+      showView("historyPanel");
       backLiveBtn.style.display = "inline-block";
       await renderHistory();
     };
-
     backLiveBtn.onclick = () => {
       if(!loggedIn) return;
-      historyPanel.style.display = "none";
-      appDiv.style.display = "block";
+      showView("appKassa");
       backLiveBtn.style.display = "none";
     };
 

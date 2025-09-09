@@ -44,9 +44,9 @@
 
     .ops { display:flex; gap:6px; justify-content:center; }
     .ops button { border-radius:8px; border:1px solid var(--border); background:#fff; padding:6px 10px; font-weight:700; cursor:pointer; }
-    .ops button:nth-child(1){ background:var(--blue); border-color:var(--blue); color:#fff; }
-    .ops button:nth-child(2){ background:#e5e7eb; color:#111; }
-    .ops button:nth-child(3){ background:var(--red); border-color:var(--red); color:#fff; }
+    .ops button.sum { background:var(--blue); border-color:var(--blue); color:#fff; }
+    .ops button.undo { background:#e5e7eb; color:#111; }
+    .ops button.del  { background:var(--red); border-color:var(--red); color:#fff; }
 
     .yekun { background:var(--green); color:#fff; font-weight:800; font-size:24px; text-align:right; padding-right:20px; }
     tfoot .yekun { position: sticky; bottom: 0; z-index: 1; }
@@ -158,7 +158,7 @@
     const logoutBtn = document.getElementById("logoutBtn");
     const snapshotsDiv = document.getElementById("snapshots");
 
-    let loggedIn=false, unsubscribeLive=null, latestDocs=[], authReady=false;
+    let loggedIn=false, unsubscribeLive=null, isEditing=false, hasPendingSnapshot=false, latestDocs=[], authReady=false;
 
     function showView(id){
       ["appHome","appKassa","historyPanel"].forEach(v=>{
@@ -168,63 +168,254 @@
     }
 
     onAuthStateChanged(auth, async (user)=>{
-      if(user){ authReady = true; setStatus("Auth OK");
+      if(user){
+        authReady = true; setStatus("Auth OK");
         if(loggedIn && !unsubscribeLive) startLive();
-      } else { authReady = false; setStatus("Auth yoxdur...");
-        try{ await signInAnonymously(auth);}catch(e){setStatus("Xəta:"+e.message);}
+      } else {
+        authReady = false; setStatus("Auth yoxdur, qoşulur...");
+        try{ await signInAnonymously(auth);}catch(e){ setStatus("Auth Xəta: "+e.message); }
       }
     });
     try{ await signInAnonymously(auth);}catch(e){}
 
+    // Fokusda ikən snapshot re-render etmə
+    tbody.addEventListener('focusin',()=>{ isEditing=true; }, true);
+    tbody.addEventListener('focusout',()=>{ setTimeout(()=>{ isEditing=false; if(hasPendingSnapshot){ renderFromDocs(latestDocs); hasPendingSnapshot=false; } }, 80); }, true);
+
+    // Login
     window.giris = function(){
       const u=document.getElementById("user").value.trim();
       const p=document.getElementById("pass").value.trim();
       if(u==="admin" && p==="1234"){
         loggedIn=true; loginDiv.style.display="none"; topToolbar.style.display="flex";
         showView("appHome"); if(authReady) startLive();
-      }else document.getElementById("error").innerText="İstifadəçi adı/şifrə səhvdir!";
+      }else document.getElementById("error").innerText="İstifadəçi adı və ya şifrə yanlışdır!";
     };
 
+    // Logout
     logoutBtn.onclick = async()=>{
       if(!loggedIn) return;
       if(!confirm("Çıxmaq istədiyinizə əminsiniz?")) return;
       loggedIn=false; stopLive(); topToolbar.style.display="none";
-      ["appHome","appKassa","historyPanel"].forEach(v=>document.getElementById(v).style.display="none");
+      ["appHome","appKassa","historyPanel"].forEach(v=>{ const el=document.getElementById(v); if(el) el.style.display="none"; });
       tbody.innerHTML=""; snapshotsDiv.innerHTML=""; umumiEl.textContent="0";
       loginDiv.style.display="block"; setStatus("Çıxıldı"); try{await signOut(auth);}catch(e){}
     };
 
+    // Modul navigasiya
     openKassaBtn.onclick=()=> showView("appKassa");
     homeBtn.onclick=()=> showView("appHome");
 
+    // Real-time dinləyici
     function startLive(){
       stopLive();
       const q=query(rowsCol, orderBy("createdAt","asc"));
-      unsubscribeLive=onSnapshot(q,snap=>{
-        if(!loggedIn)return;
+      unsubscribeLive=onSnapshot(q, (snap)=>{
+        if(!loggedIn) return;
         latestDocs=[]; snap.forEach(d=>latestDocs.push({id:d.id,data:d.data()}));
-        renderFromDocs(latestDocs); setStatus("Firestore OK");
-      },err=>setStatus("Xəta:"+err.message));
+        if(isEditing) hasPendingSnapshot=true; else renderFromDocs(latestDocs);
+        setStatus("Firestore OK (real-time)");
+      }, err=> setStatus("Firestore Xəta: "+err.message));
     }
     function stopLive(){ if(unsubscribeLive){unsubscribeLive();unsubscribeLive=null;} }
 
+    // Render + balans
     function renderFromDocs(docs){
       tbody.innerHTML=""; let total=0,idx=0;
       docs.forEach(({id,data})=>{
-        const tr=createRow(id,data,idx); tbody.appendChild(tr);
-        for(let i=1;i<=5;i++) total+=Number(data["n"+i]??0)||0; idx++;
+        const tr=createRow(id,data,idx);
+        tbody.appendChild(tr);
+        for(let i=1;i<=5;i++) total += Number(data["n"+i] ?? 0) || 0;
+        idx++;
       });
-      umumiEl.textContent=fmt(total);
+      umumiEl.textContent = fmt(total);
     }
 
-    function createRow(docId,data,index){
+    function setNegClass(inputEl, value){
+      if(value !== null && !Number.isNaN(value) && Number(value) < 0) inputEl.classList.add('neg');
+      else inputEl.classList.remove('neg');
+    }
+
+    // Sətir qur
+    function createRow(docId, data, index){
       const tr=document.createElement("tr"); tr.dataset.id=docId;
-      tr.innerHTML=`<td>${index+1}</td>
-      <td><input type="text" value="${data.account||""}" placeholder="Hesab adı"></td>
-      ${[1,2,3,4,5].map(i=>`<td><input type="number" value="${data["n"+i]??""}"></td>`).join("")}
-      <td class="ops"><button>Cəmlə</button><button>Geri</button><button>Sil</button></td>`;
+
+      // №
+      const tdNo=document.createElement("td"); tdNo.textContent=index+1; tr.appendChild(tdNo);
+
+      // Hesab
+      const tdAcc=document.createElement("td");
+      const inpAcc=document.createElement("input");
+      inpAcc.type="text"; inpAcc.placeholder="Hesab adı"; inpAcc.value=data.account||"";
+      inpAcc.onblur=async()=>{
+        if(!loggedIn) return;
+        await updateDoc(doc(db,"rows",docId), { account: inpAcc.value ?? "" });
+        await saveSnapshot();
+      };
+      tdAcc.appendChild(inpAcc); tr.appendChild(tdAcc);
+
+      // 1..5 rəqəm inputları
+      const numberInputs=[];
+      for(let i=1;i<=5;i++){
+        const td=document.createElement("td");
+        const inp=document.createElement("input");
+        inp.type="number"; inp.step="any";
+        const current=(data["n"+i] ?? "")===null ? "" : (data["n"+i] ?? "");
+        inp.value=current;
+        setNegClass(inp, current===""? null : Number(current));
+
+        // dəyəri yadda saxla + balansı yenilə
+        inp.onblur=async()=>{
+          if(!loggedIn) return;
+          const v = inp.value === "" ? null : Number(inp.value);
+          setNegClass(inp, v);
+          await updateDoc(doc(db,"rows",docId), { ["n"+i]: v });
+          // balansı təzələ (snapshot gələnə qədər lokalda da görünsün)
+          await fetchAndRender();
+          await saveSnapshot();
+        };
+
+        td.appendChild(inp); tr.appendChild(td);
+        numberInputs.push(inp);
+      }
+
+      // Əməliyyatlar
+      const tdOps=document.createElement("td");
+      const ops=document.createElement("div"); ops.className="ops";
+
+      // Cəmlə
+      const btnSum=document.createElement("button"); btnSum.className="sum"; btnSum.textContent="Cəmlə";
+      btnSum.onclick=async()=>{
+        if(!loggedIn) return;
+        const cur={
+          n1:Number(numberInputs[0].value)||0,
+          n2:Number(numberInputs[1].value)||0,
+          n3:Number(numberInputs[2].value)||0,
+          n4:Number(numberInputs[3].value)||0,
+          n5:Number(numberInputs[4].value)||0,
+        };
+        const backup={
+          n1:numberInputs[0].value===""? null : Number(numberInputs[0].value),
+          n2:numberInputs[1].value===""? null : Number(numberInputs[1].value),
+          n3:numberInputs[2].value===""? null : Number(numberInputs[2].value),
+          n4:numberInputs[3].value===""? null : Number(numberInputs[3].value),
+          n5:numberInputs[4].value===""? null : Number(numberInputs[4].value),
+        };
+        const sum=cur.n1+cur.n2+cur.n3+cur.n4+cur.n5;
+        await updateDoc(doc(db,"rows",docId), { backup, n1: sum, n2: null, n3: null, n4: null, n5: null });
+        await fetchAndRender(); await saveSnapshot();
+      };
+
+      // Geri
+      const btnUndo=document.createElement("button"); btnUndo.className="undo"; btnUndo.textContent="Geri";
+      btnUndo.onclick=async()=>{
+        if(!loggedIn) return;
+        const rowRef=doc(db,"rows",docId);
+        const rowSnap=await getDoc(rowRef);
+        const d=rowSnap.data();
+        if(d && d.backup){
+          await updateDoc(rowRef, {
+            n1: d.backup.n1 ?? null,
+            n2: d.backup.n2 ?? null,
+            n3: d.backup.n3 ?? null,
+            n4: d.backup.n4 ?? null,
+            n5: d.backup.n5 ?? null,
+            backup: null
+          });
+          await fetchAndRender(); await saveSnapshot();
+        }else{
+          alert("Geri üçün əvvəlcə Cəmlə istifadə olunmalıdır!");
+        }
+      };
+
+      // Sil
+      const btnDel=document.createElement("button"); btnDel.className="del"; btnDel.textContent="Sil";
+      btnDel.onclick=async()=>{
+        if(!loggedIn) return;
+        if(!confirm("Bu sətir silinsin?")) return;
+        await deleteDoc(doc(db,"rows",docId));
+        await fetchAndRender(); await saveSnapshot();
+      };
+
+      ops.appendChild(btnSum); ops.appendChild(btnUndo); ops.appendChild(btnDel);
+      tdOps.appendChild(ops); tr.appendChild(tdOps);
+
       return tr;
     }
+
+    async function fetchAndRender(){
+      const q=query(rowsCol, orderBy("createdAt","asc"));
+      const snap=await getDocs(q); latestDocs=[];
+      snap.forEach(d=>latestDocs.push({id:d.id, data:d.data()}));
+      renderFromDocs(latestDocs);
+    }
+
+    // Yeni sətir
+    yeniBtn.onclick=async()=>{
+      if(!loggedIn) return;
+      await addDoc(rowsCol, {
+        account:"", n1:null, n2:null, n3:null, n4:null, n5:null,
+        createdAt: serverTimestamp(), backup: null
+      });
+      await fetchAndRender(); await saveSnapshot();
+    };
+
+    // Tarixçə snapshot
+    async function saveSnapshot(){
+      try{
+        if(!loggedIn) return;
+        const qRows=query(rowsCol, orderBy("createdAt","asc"));
+        const snap=await getDocs(qRows);
+        const rows=[]; let i=1;
+        snap.forEach(docu=>{
+          const r=docu.data();
+          rows.push({
+            no:i++, account:r.account||"",
+            n1:r.n1??"", n2:r.n2??"", n3:r.n3??"", n4:r.n4??"", n5:r.n5??""
+          });
+        });
+        await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
+      }catch(e){ console.warn("Tarixçə yazılmadı:", e.message); }
+    }
+
+    // Tarixçə paneli
+    historyBtn.onclick=async()=>{
+      if(!loggedIn) return;
+      showView("historyPanel"); backLiveBtn.style.display="inline-block"; await renderHistory();
+    };
+    backLiveBtn.onclick=()=>{ if(!loggedIn) return; showView("appKassa"); backLiveBtn.style.display="none"; };
+
+    async function renderHistory(){
+      try{
+        snapshotsDiv.innerHTML="Yüklənir...";
+        const qSnaps=query(snapsCol, orderBy("createdAt","desc"));
+        const snap=await getDocs(qSnaps);
+        if(snap.empty){ snapshotsDiv.innerHTML="<i>Hələ tarixçə yoxdur.</i>"; return; }
+        const parts=[];
+        snap.forEach(s=>{
+          const d=s.data();
+          const when=d.createdAt?.toDate?.()? d.createdAt.toDate().toLocaleString("az-AZ") : "(vaxt yoxdur)";
+          const rows=d.rows||[];
+          let rowsHtml=`<table><thead><tr>
+            <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+          </tr></thead><tbody>`;
+          rows.forEach(r=>{
+            rowsHtml+=`<tr>
+              <td>${r.no??""}</td>
+              <td>${escapeHtml(r.account??"")}</td>
+              <td>${r.n1??""}</td><td>${r.n2??""}</td><td>${r.n3??""}</td><td>${r.n4??""}</td><td>${r.n5??""}</td>
+            </tr>`;
+          });
+          rowsHtml+=`</tbody></table>`;
+          parts.push(`<div class="snap"><h4>${when}</h4>${rowsHtml}</div>`);
+        });
+        snapshotsDiv.innerHTML=parts.join("");
+      }catch(e){
+        snapshotsDiv.innerHTML=""; alert("Tarixçə oxuna bilmədi: "+e.message);
+      }
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   </script>
 </body>
 </html>

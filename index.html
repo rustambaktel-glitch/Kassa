@@ -17,6 +17,7 @@
     input[type="text"] { padding: 6px; width: 160px; }
     input[type="number"] { padding: 6px; width: 100px; text-align: right; }
     #status { margin:8px 0; padding:8px; border:1px dashed #888; }
+    .toolbar { display:flex; gap:10px; align-items:center; margin:8px 0 4px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -36,9 +37,16 @@
   <!-- APP -->
   <div id="app">
     <h2>Kassa Hesabatı</h2>
+
+    <div class="toolbar">
+      <button id="yeniBtn">+ Sətir əlavə et</button>
+    </div>
+
     <table id="kassa">
       <thead>
         <tr>
+          <th>#</th>
+          <th>Tarix</th>
           <th>Hesab</th>
           <th>1</th>
           <th>2</th>
@@ -51,11 +59,10 @@
       <tbody id="tbody"></tbody>
       <tfoot>
         <tr class="yekun">
-          <td colspan="7">Balans: <span id="umumi">0</span></td>
+          <td colspan="9">Balans: <span id="umumi">0</span></td>
         </tr>
       </tfoot>
     </table>
-    <button id="yeniBtn">+ Sətir əlavə et</button>
   </div>
 
   <!-- Firebase SDK (modular) -->
@@ -83,16 +90,17 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Status köməkçi
+    // Status köməkçi + formatlama
     const statusEl = document.getElementById("status");
     const setStatus = (t) => statusEl && (statusEl.textContent = "Status: " + t);
+    const fmt = (n) => new Intl.NumberFormat("az-AZ").format(n);
 
     // Anonim login
     try {
       await signInAnonymously(auth);
       setStatus("Auth OK (anonim giriş uğurlu)");
     } catch (e) {
-      setStatus("Auth Xəta: " + e.message + " — Authorized domains və Anonymous login-i yoxla");
+      setStatus("Auth Xəta: " + e.message);
       alert("Auth xətası: " + e.message);
     }
 
@@ -115,9 +123,22 @@
     };
 
     // Sətir DOM-u qur
-    function createRow(docId, data) {
+    function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
+
+      // № sütunu
+      const tdNo = document.createElement("td");
+      tdNo.textContent = index + 1;
+      tr.appendChild(tdNo);
+
+      // Tarix
+      const tdDate = document.createElement("td");
+      let created = "";
+      const ts = data.createdAt?.toDate?.() || data.createdAt;
+      if (ts instanceof Date) created = ts.toLocaleString("az-AZ");
+      tdDate.textContent = created || "";
+      tr.appendChild(tdDate);
 
       // Hesab
       const tdAcc = document.createElement("td");
@@ -138,13 +159,11 @@
         inp.value = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
 
         if (i < 5) {
-          // 1..4: sadə update (balans real-time yenilənir)
           inp.onchange = () => {
             const v = inp.value === "" ? null : Number(inp.value);
             updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
           };
         } else {
-          // 5: dolduqda sətirin cəmini 1-ci sütuna yaz, qalanları boşalt
           inp.onchange = async () => {
             const lastVal = inp.value;
             if (lastVal !== "") {
@@ -187,19 +206,20 @@
         setStatus("Firestore OK (real-time qoşuldu)");
         tbody.innerHTML = "";
         let total = 0;
+        let idx = 0;
 
         snap.forEach((d) => {
           const data = d.data();
-          const tr = createRow(d.id, data);
+          const tr = createRow(d.id, data, idx);
           tbody.appendChild(tr);
 
-          // Balans: bütün n1..n5 cəmi
           for (let i = 1; i <= 5; i++) {
             total += Number(data["n"+i] ?? 0) || 0;
           }
+          idx++;
         });
 
-        umumiEl.textContent = total;
+        umumiEl.textContent = fmt(total);
       });
     } catch (e) {
       setStatus("Firestore Xəta: " + e.message);
@@ -207,20 +227,15 @@
 
     // Yeni sətir
     yeniBtn.onclick = async () => {
-      await addDoc(rowsCol, {
-        account: "",
-        n1: null, n2: null, n3: null, n4: null, n5: null,
-        createdAt: serverTimestamp()
-      });
-    };
-
-    // Köhnə handler-lər üçün
-    window.umumiHesabla = function(){};
-    window.yeniSira = () => yeniBtn.click();
-    window.silSira = async (btn) => {
-      const tr = btn.closest("tr");
-      const id = tr?.dataset?.id;
-      if (id) await deleteDoc(doc(db, "rows", id));
+      try {
+        await addDoc(rowsCol, {
+          account: "",
+          n1: null, n2: null, n3: null, n4: null, n5: null,
+          createdAt: serverTimestamp()
+        });
+      } catch (e) {
+        setStatus("AddDoc Xəta: " + e.message);
+      }
     };
   </script>
 </body>

@@ -28,10 +28,11 @@
 
   <div id="status">Status: Yoxlanılır...</div>
 
-  <!-- ÜST TOOLBAR (hər iki rejimdə görünür) -->
+  <!-- ÜST TOOLBAR -->
   <div class="toolbar" id="topToolbar" style="justify-content:flex-start;">
     <button id="historyBtn">Tarixçə</button>
     <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
+    <button id="logoutBtn" style="margin-left:auto;background:#f44336;color:#fff;">Çıxış</button>
   </div>
 
   <!-- LOGIN -->
@@ -83,7 +84,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+    import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
     import {
       getFirestore, collection, addDoc, updateDoc, deleteDoc,
       doc, onSnapshot, serverTimestamp, query, orderBy, getDocs
@@ -125,6 +126,7 @@
     const yeniBtn = document.getElementById("yeniBtn");
     const historyBtn = document.getElementById("historyBtn");
     const backLiveBtn = document.getElementById("backLiveBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
     const appDiv = document.getElementById("app");
     const historyPanel = document.getElementById("historyPanel");
     const snapshotsDiv = document.getElementById("snapshots");
@@ -139,6 +141,23 @@
       } else {
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
+    };
+
+    // ÇIXIŞ düyməsi
+    logoutBtn.onclick = async () => {
+      const ok = confirm("Çıxmaq istədiyinizə əminsiniz?");
+      if (!ok) return;
+      try {
+        await signOut(auth);
+      } catch (e) {
+        // anonim sessiya olmasa da davam edək
+      }
+      // UI reset
+      appDiv.style.display = "none";
+      historyPanel.style.display = "none";
+      backLiveBtn.style.display = "none";
+      document.getElementById("login").style.display = "block";
+      setStatus("Çıxıldı (sessiya bağlandı)");
     };
 
     // Sətir qur
@@ -275,7 +294,7 @@
       }
     };
 
-    // --- Tarixçə ---
+    // Tarixçə
     async function saveSnapshot() {
       try {
         const qRows = query(rowsCol, orderBy("createdAt","asc"));
@@ -301,16 +320,15 @@
     }
 
     historyBtn.onclick = async () => {
-      // Görünüşləri dəyiş
-      appDiv.style.display = "none";
-      historyPanel.style.display = "block";
+      document.getElementById("app").style.display = "none";
+      document.getElementById("historyPanel").style.display = "block";
       backLiveBtn.style.display = "inline-block";
       await renderHistory();
     };
 
     backLiveBtn.onclick = () => {
-      historyPanel.style.display = "none";
-      appDiv.style.display = "block";
+      document.getElementById("historyPanel").style.display = "none";
+      document.getElementById("app").style.display = "block";
       backLiveBtn.style.display = "none";
     };
 

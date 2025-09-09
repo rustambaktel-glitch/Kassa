@@ -102,7 +102,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-    import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+    import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
     import {
       getFirestore, collection, addDoc, updateDoc, deleteDoc,
       doc, onSnapshot, serverTimestamp, query, orderBy, getDocs, getDoc
@@ -144,18 +144,39 @@
     const loginDiv = document.getElementById("login");
 
     // --- Login state & dinləyici ---
-    let loggedIn = false;
-    let unsubscribeLive = null;
-    let isEditing = false;
+    let loggedIn = false;          // vizual login
+    let unsubscribeLive = null;    // Firestore dinləyici
+    let isEditing = false;         // input içindəsə re-render etmə
     let hasPendingSnapshot = false;
-    let latestDocs = []; // son snapshot-dakı sənədlər
+    let latestDocs = [];
+    let authReady = false;         // Firebase auth hazırdırsa
 
-    // Firestore üçün anonim auth
+    // Auth vəziyyətini dinlə → düşsə, avtomatik yenidən anon qoşul
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        authReady = true;
+        setStatus("Auth OK (istifadəçi aktivdir)");
+        // Əgər artıq vizual-login olunubsa və dinləyici bağlıdırsa, yenidən qoş
+        if (loggedIn && !unsubscribeLive) {
+          startLive();
+        }
+      } else {
+        authReady = false;
+        setStatus("Auth yoxdur, qoşulur...");
+        try {
+          await signInAnonymously(auth);
+          // signInAnonymously bitəndə onAuthStateChanged yenə işləyəcək
+        } catch (e) {
+          setStatus("Auth Xəta: " + e.message);
+        }
+      }
+    });
+
+    // İlk dəfə auth-u başlat (səhifə açılarkən)
     try {
       await signInAnonymously(auth);
-      setStatus("Auth OK (anonim giriş uğurlu)");
     } catch (e) {
-      setStatus("Auth Xəta: " + e.message);
+      // ola bilər onAuthStateChanged artıq işə düşüb
     }
 
     // Edit state: fokus daxil/çıxış
@@ -170,7 +191,7 @@
       }, 80);
     }, true);
 
-    // Lokal LOGIN
+    // Vizual LOGIN
     window.giris = function giris() {
       const user = document.getElementById("user").value.trim();
       const pass = document.getElementById("pass").value.trim();
@@ -181,7 +202,7 @@
         appDiv.style.display = "block";
         historyPanel.style.display = "none";
         backLiveBtn.style.display = "none";
-        startLive(); // login zamanı dinləyicini qoş
+        if (authReady) startLive(); // auth hazırdırsa qoş
       } else {
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
@@ -192,9 +213,10 @@
       if (!loggedIn) return;
       const ok = confirm("Çıxmaq istədiyinizə əminsiniz?");
       if (!ok) return;
-      try { await signOut(auth); } catch (e) {}
-      stopLive();
+
+      // Vizual logout
       loggedIn = false;
+      stopLive();
       topToolbar.style.display = "none";
       appDiv.style.display = "none";
       historyPanel.style.display = "none";
@@ -204,6 +226,9 @@
       umumiEl.textContent = "0";
       loginDiv.style.display = "block";
       setStatus("Çıxıldı (giriş tələb olunur)");
+
+      // Firebase-dən də çıx (onAuthStateChanged sonra yenidən anon qoşacaq)
+      try { await signOut(auth); } catch (e) {}
     };
 
     // --- Live dinləyici ---
@@ -215,7 +240,7 @@
         latestDocs = [];
         snap.forEach(d => latestDocs.push({ id: d.id, data: d.data() }));
         if (isEditing) {
-          hasPendingSnapshot = true; // yazarkən gələn snapshot-u saxla
+          hasPendingSnapshot = true;
         } else {
           renderFromDocs(latestDocs);
         }
@@ -273,7 +298,7 @@
         if (!loggedIn) return;
         await updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" });
         await saveSnapshot();
-        await fetchAndRender(); // balans və görüntünü dərhal yenilə
+        await fetchAndRender();
       };
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
@@ -291,7 +316,7 @@
           const v = inp.value === "" ? null : Number(inp.value);
           await updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
           await saveSnapshot();
-          await fetchAndRender(); // balansı dərhal göstər
+          await fetchAndRender();
         };
         td.appendChild(inp);
         tr.appendChild(td);
@@ -303,13 +328,12 @@
       const ops = document.createElement("div");
       ops.className = "ops";
 
-      // Cəmlə: n1 = (n1+n2+n3+n4+n5), n2..n5 = null, backup = INDİKİ n1..n5
+      // Cəmlə
       const btnSum = document.createElement("button");
       btnSum.textContent = "Cəmlə";
       btnSum.onclick = async () => {
         if (!loggedIn) return;
 
-        // indiki input dəyərləri
         const cur = {
           n1: numberInputs[0].value === "" ? 0 : Number(numberInputs[0].value),
           n2: numberInputs[1].value === "" ? 0 : Number(numberInputs[1].value),
@@ -334,7 +358,7 @@
         await fetchAndRender();
       };
 
-      // Geri: backup-dan bərpa
+      // Geri
       const btnUndo = document.createElement("button");
       btnUndo.textContent = "Geri";
       btnUndo.onclick = async () => {
@@ -416,7 +440,6 @@
         });
         await addDoc(snapsCol, { createdAt: serverTimestamp(), rows });
       } catch (e) {
-        // Səssiz keçək ki, istifadəçini yormasın
         console.warn("Tarixçə yazılmadı:", e.message);
       }
     }

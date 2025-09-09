@@ -46,7 +46,6 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>Tarix</th>
           <th>Hesab</th>
           <th>1</th>
           <th>2</th>
@@ -59,7 +58,7 @@
       <tbody id="tbody"></tbody>
       <tfoot>
         <tr class="yekun">
-          <td colspan="9">Balans: <span id="umumi">0</span></td>
+          <td colspan="8">Balans: <span id="umumi">0</span></td>
         </tr>
       </tfoot>
     </table>
@@ -85,32 +84,26 @@
       measurementId: "G-PXYCSSNZS5"
     };
 
-    // Init
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Status köməkçi + formatlama
     const statusEl = document.getElementById("status");
     const setStatus = (t) => statusEl && (statusEl.textContent = "Status: " + t);
     const fmt = (n) => new Intl.NumberFormat("az-AZ").format(n);
 
-    // Anonim login
     try {
       await signInAnonymously(auth);
       setStatus("Auth OK (anonim giriş uğurlu)");
     } catch (e) {
       setStatus("Auth Xəta: " + e.message);
-      alert("Auth xətası: " + e.message);
     }
 
-    // Kolleksiya & DOM
     const rowsCol = collection(db, "rows");
     const tbody = document.getElementById("tbody");
     const umumiEl = document.getElementById("umumi");
     const yeniBtn = document.getElementById("yeniBtn");
 
-    // Lokal LOGIN (vizual kilid)
     window.giris = function giris() {
       const user = document.getElementById("user").value.trim();
       const pass = document.getElementById("pass").value.trim();
@@ -122,7 +115,6 @@
       }
     };
 
-    // Sətir DOM-u qur
     function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
@@ -131,14 +123,6 @@
       const tdNo = document.createElement("td");
       tdNo.textContent = index + 1;
       tr.appendChild(tdNo);
-
-      // Tarix
-      const tdDate = document.createElement("td");
-      let created = "";
-      const ts = data.createdAt?.toDate?.() || data.createdAt;
-      if (ts instanceof Date) created = ts.toLocaleString("az-AZ");
-      tdDate.textContent = created || "";
-      tr.appendChild(tdDate);
 
       // Hesab
       const tdAcc = document.createElement("td");
@@ -188,7 +172,7 @@
         if (i < 5) numberInputs.push(inp);
       }
 
-      // Əməliyyat (Sil)
+      // Əməliyyat
       const tdOps = document.createElement("td");
       const btn = document.createElement("button");
       btn.textContent = "Sil";
@@ -199,7 +183,6 @@
       return tr;
     }
 
-    // Real-time dinləmə
     try {
       const q = query(rowsCol, orderBy("createdAt","asc"));
       onSnapshot(q, (snap) => {
@@ -225,7 +208,6 @@
       setStatus("Firestore Xəta: " + e.message);
     }
 
-    // Yeni sətir
     yeniBtn.onclick = async () => {
       try {
         await addDoc(rowsCol, {

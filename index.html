@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <title>Kassa Sistemi</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { background: red; color: white; padding: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #555; padding: 6px; text-align: center; }
+    th { background: #f0f0f0; }
+    .yekun { background: #4CAF50; color: white; font-weight: bold; font-size: 20px; }
+    button { margin: 5px; padding: 6px 12px; }
+    #login { text-align: center; margin-top: 100px; }
+    #app { display: none; }
+    input { padding: 6px; margin: 5px; width: 100px; text-align: right; }
+  </style>
+</head>
+<body>
+
+  <!-- 🔹 LOGIN -->
+  <div id="login">
+    <h2>Kassa Sisteminə Giriş</h2>
+    <input type="text" id="user" placeholder="İstifadəçi adı"><br>
+    <input type="password" id="pass" placeholder="Şifrə"><br>
+    <button onclick="giris()">Daxil ol</button>
+    <p id="error" style="color:red;"></p>
+  </div>
+
+  <!-- 🔹 KASSA HESABATI -->
+  <div id="app">
+    <h2>Kassa Hesabatı</h2>
+    <table id="kassa">
+      <thead>
+        <tr>
+          <th>Hesab</th>
+          <th>1</th>
+          <th>2</th>
+          <th>3</th>
+          <th>4</th>
+          <th>5</th>
+          <th>Əməliyyat</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="text" placeholder="Hesab adı"></td>
+          <td><input type="number" onchange="umumiHesabla()"></td>
+          <td><input type="number" onchange="umumiHesabla()"></td>
+          <td><input type="number" onchange="umumiHesabla()"></td>
+          <td><input type="number" onchange="umumiHesabla()"></td>
+          <td><input type="number" onchange="hesabla(this)"></td>
+          <td><button onclick="silSira(this)">Sil</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="yekun">
+          <td colspan="7">Balans: <span id="umumi">0</span></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button onclick="yeniSira()">+ Sətir əlavə et</button>
+  </div>
+
+  <script>
+    // 🔹 LOGIN
+    function giris() {
+      let user = document.getElementById("user").value;
+      let pass = document.getElementById("pass").value;
+      if(user === "admin" && pass === "1234") {
+        document.getElementById("login").style.display = "none";
+        document.getElementById("app").style.display = "block";
+      } else {
+        document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
+      }
+    }
+
+    // 🔹 SƏTRİN CƏMLƏNMƏSİ (yalnız 5-ci sütun dolduqda)
+    function hesabla(input) {
+      let tr = input.closest("tr");
+      let inputs = tr.querySelectorAll("td input[type=number]");
+
+      if (input.value !== "") {
+        let sum = 0;
+        inputs.forEach(i => sum += Number(i.value) || 0);
+
+        inputs[0].value = sum;
+        for (let i = 1; i < inputs.length; i++) {
+          inputs[i].value = "";
+        }
+      }
+
+      umumiHesabla();
+    }
+
+    // 🔹 BALANS (bütün xanaları toplasın)
+    function umumiHesabla() {
+      let total = 0;
+      document.querySelectorAll("tbody tr").forEach(tr => {
+        let inputs = tr.querySelectorAll("td input[type=number]");
+        inputs.forEach(i => {
+          total += Number(i.value) || 0;
+        });
+      });
+      document.getElementById("umumi").innerText = total;
+    }
+
+    // 🔹 YENİ SƏTİR ƏLAVƏ ET
+    function yeniSira() {
+      let tbody = document.querySelector("tbody");
+      let tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input type="text" placeholder="Hesab adı"></td>
+        <td><input type="number" onchange="umumiHesabla()"></td>
+        <td><input type="number" onchange="umumiHesabla()"></td>
+        <td><input type="number" onchange="umumiHesabla()"></td>
+        <td><input type="number" onchange="umumiHesabla()"></td>
+        <td><input type="number" onchange="hesabla(this)"></td>
+        <td><button onclick="silSira(this)">Sil</button></td>`;
+      tbody.appendChild(tr);
+    }
+
+    // 🔹 SƏTİR SİL
+    function silSira(btn) {
+      let tr = btn.closest("tr");
+      tr.remove();
+      umumiHesabla();
+    }
+  </script>
+
+</body>
+</html>

@@ -146,6 +146,7 @@
     // --- Login state & dinləyici ---
     let loggedIn = false;
     let unsubscribeLive = null;
+    let isEditing = false; // ⬅️ istifadəçi xananın içindədirsə, re-render etməyək
 
     // Firestore üçün anonim auth
     try {
@@ -154,6 +155,13 @@
     } catch (e) {
       setStatus("Auth Xəta: " + e.message);
     }
+
+    // Edit state: focus daxil/çıxış
+    tbody.addEventListener('focusin', () => { isEditing = true; }, true);
+    tbody.addEventListener('focusout', () => {
+      // kiçik gecikmə: blur tamamlansın, yazma bitsin
+      setTimeout(() => { isEditing = false; }, 80);
+    }, true);
 
     // Lokal LOGIN
     window.giris = function giris() {
@@ -197,6 +205,8 @@
       const q = query(rowsCol, orderBy("createdAt","asc"));
       unsubscribeLive = onSnapshot(q, (snap) => {
         if (!loggedIn) return;
+        if (isEditing) return; // ⬅️ yazarkən DOM-u yeniləmə
+
         tbody.innerHTML = "";
         let total = 0;
         let idx = 0;
@@ -400,8 +410,60 @@
       try {
         snapshotsDiv.innerHTML = "Yüklənir...";
         const qSnaps = query(snapsCol, orderBy("createdAt","desc"));
-        const snap = await getDocs(qSnps);
-      } catch (e) {}
+        const snap = await getDocs(qSnaps);
+        if (snap.empty) {
+          snapshotsDiv.innerHTML = "<i>Hələ tarixçə yoxdur.</i>";
+          return;
+        }
+        const parts = [];
+        snap.forEach(s => {
+          const d = s.data();
+          const when = d.createdAt?.toDate?.()
+            ? d.createdAt.toDate().toLocaleString("az-AZ")
+            : "(vaxt yoxdur)";
+          const rows = d.rows || [];
+          let rowsHtml = `
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Hesab</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          rows.forEach(r => {
+            rowsHtml += `
+              <tr>
+                <td>${r.no ?? ""}</td>
+                <td>${escapeHtml(r.account ?? "")}</td>
+                <td>${r.n1 ?? ""}</td>
+                <td>${r.n2 ?? ""}</td>
+                <td>${r.n3 ?? ""}</td>
+                <td>${r.n4 ?? ""}</td>
+                <td>${r.n5 ?? ""}</td>
+              </tr>
+            `;
+          });
+          rowsHtml += `</tbody></table>`;
+
+          parts.push(`
+            <div class="snap">
+              <h4>${when}</h4>
+              ${rowsHtml}
+            </div>
+          `);
+        });
+        snapshotsDiv.innerHTML = parts.join("");
+      } catch (e) {
+        snapshotsDiv.innerHTML = "";
+        alert("Tarixçə oxuna bilmədi: " + e.message);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[m]));
     }
   </script>
 </body>

@@ -28,8 +28,8 @@
 
   <div id="status">Status: Yoxlanılır...</div>
 
-  <!-- ÜST TOOLBAR -->
-  <div class="toolbar" id="topToolbar" style="justify-content:flex-start;">
+  <!-- ÜST TOOLBAR (login OLDUQDA görünəcək) -->
+  <div class="toolbar" id="topToolbar" style="justify-content:flex-start; display:none;">
     <button id="historyBtn">Tarixçə</button>
     <button id="backLiveBtn" style="display:none;">Cari vəziyyət</button>
     <button id="logoutBtn" style="margin-left:auto;background:#f44336;color:#fff;">Çıxış</button>
@@ -105,22 +105,14 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // --- UI refs ---
     const statusEl = document.getElementById("status");
     const setStatus = (t) => statusEl && (statusEl.textContent = "Status: " + t);
     const fmt = (n) => new Intl.NumberFormat("az-AZ").format(n);
 
-    try {
-      await signInAnonymously(auth);
-      setStatus("Auth OK (anonim giriş uğurlu)");
-    } catch (e) {
-      setStatus("Auth Xəta: " + e.message);
-    }
-
-    // Kolleksiyalar
     const rowsCol = collection(db, "rows");
     const snapsCol = collection(db, "snapshots");
 
-    // DOM
     const tbody = document.getElementById("tbody");
     const umumiEl = document.getElementById("umumi");
     const yeniBtn = document.getElementById("yeniBtn");
@@ -130,14 +122,31 @@
     const appDiv = document.getElementById("app");
     const historyPanel = document.getElementById("historyPanel");
     const snapshotsDiv = document.getElementById("snapshots");
+    const topToolbar = document.getElementById("topToolbar");
+    const loginDiv = document.getElementById("login");
 
-    // LOGIN (vizual kilid)
+    // --- Login state ---
+    let loggedIn = false;
+
+    // Firebase anonim auth (yalnız Firestore-a icazə üçün)
+    try {
+      await signInAnonymously(auth);
+      setStatus("Auth OK (anonim giriş uğurlu)");
+    } catch (e) {
+      setStatus("Auth Xəta: " + e.message);
+    }
+
+    // Lokal LOGIN (vizual kilid)
     window.giris = function giris() {
       const user = document.getElementById("user").value.trim();
       const pass = document.getElementById("pass").value.trim();
       if (user === "admin" && pass === "1234") {
-        document.getElementById("login").style.display = "none";
+        loggedIn = true;
+        loginDiv.style.display = "none";
+        topToolbar.style.display = "flex";
         appDiv.style.display = "block";
+        historyPanel.style.display = "none";
+        backLiveBtn.style.display = "none";
       } else {
         document.getElementById("error").innerText = "İstifadəçi adı və ya şifrə yanlışdır!";
       }
@@ -145,22 +154,25 @@
 
     // ÇIXIŞ düyməsi
     logoutBtn.onclick = async () => {
+      if (!loggedIn) return;
       const ok = confirm("Çıxmaq istədiyinizə əminsiniz?");
       if (!ok) return;
-      try {
-        await signOut(auth);
-      } catch (e) {
-        // anonim sessiya olmasa da davam edək
-      }
-      // UI reset
+      try { await signOut(auth); } catch (e) {}
+      // UI reset (heç nə görünməsin)
+      loggedIn = false;
+      topToolbar.style.display = "none";
       appDiv.style.display = "none";
       historyPanel.style.display = "none";
       backLiveBtn.style.display = "none";
-      document.getElementById("login").style.display = "block";
-      setStatus("Çıxıldı (sessiya bağlandı)");
+      // görünən məlumatları da təmizləyək
+      tbody.innerHTML = "";
+      snapshotsDiv.innerHTML = "";
+      umumiEl.textContent = "0";
+      loginDiv.style.display = "block";
+      setStatus("Çıxıldı (giriş tələb olunur)");
     };
 
-    // Sətir qur
+    // --- Live cədvəl qur ---
     function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
@@ -174,7 +186,7 @@
       inpAcc.type = "text";
       inpAcc.placeholder = "Hesab adı";
       inpAcc.value = data.account || "";
-      inpAcc.onchange = () => updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" }).then(saveSnapshot);
+      inpAcc.onchange = () => updateDoc(doc(db, "rows", docId), { account: inpAcc.value ?? "" }).then(() => { if (loggedIn) saveSnapshot(); });
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
 
@@ -186,7 +198,7 @@
         inp.value = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
         inp.onchange = () => {
           const v = inp.value === "" ? null : Number(inp.value);
-          updateDoc(doc(db, "rows", docId), { ["n"+i]: v }).then(saveSnapshot);
+          updateDoc(doc(db, "rows", docId), { ["n"+i]: v }).then(() => { if (loggedIn) saveSnapshot(); });
         };
         td.appendChild(inp);
         tr.appendChild(td);
@@ -200,6 +212,7 @@
       const btnSum = document.createElement("button");
       btnSum.textContent = "Cəmlə";
       btnSum.onclick = async () => {
+        if (!loggedIn) return;
         const cur = {
           n1: Number(numberInputs[0].value) || 0,
           n2: Number(numberInputs[1].value) || 0,
@@ -225,6 +238,7 @@
       const btnUndo = document.createElement("button");
       btnUndo.textContent = "Geri";
       btnUndo.onclick = async () => {
+        if (!loggedIn) return;
         if (data.backup) {
           await updateDoc(doc(db, "rows", docId), {
             n1: data.backup.n1 ?? null,
@@ -242,7 +256,7 @@
 
       const btnDel = document.createElement("button");
       btnDel.textContent = "Sil";
-      btnDel.onclick = async () => { await deleteDoc(doc(db, "rows", docId)); await saveSnapshot(); };
+      btnDel.onclick = async () => { if (!loggedIn) return; await deleteDoc(doc(db, "rows", docId)); await saveSnapshot(); };
 
       ops.appendChild(btnSum);
       ops.appendChild(btnUndo);
@@ -253,11 +267,11 @@
       return tr;
     }
 
-    // Live dinləmə
+    // Live dinləmə (loggedIn yoxdursa DOM-u yeniləməyək)
     try {
       const q = query(rowsCol, orderBy("createdAt","asc"));
       onSnapshot(q, (snap) => {
-        setStatus("Firestore OK (real-time qoşuldu)");
+        if (!loggedIn) return; // <-- logoutda heç nə göstərmə
         tbody.innerHTML = "";
         let total = 0;
         let idx = 0;
@@ -274,6 +288,7 @@
         });
 
         umumiEl.textContent = fmt(total);
+        setStatus("Firestore OK (real-time qoşuldu)");
       });
     } catch (e) {
       setStatus("Firestore Xəta: " + e.message);
@@ -281,6 +296,7 @@
 
     // Yeni sətir
     yeniBtn.onclick = async () => {
+      if (!loggedIn) return;
       try {
         await addDoc(rowsCol, {
           account: "",
@@ -294,9 +310,10 @@
       }
     };
 
-    // Tarixçə
+    // --- Tarixçə ---
     async function saveSnapshot() {
       try {
+        if (!loggedIn) return;
         const qRows = query(rowsCol, orderBy("createdAt","asc"));
         const snap = await getDocs(qRows);
         const rows = [];
@@ -320,15 +337,17 @@
     }
 
     historyBtn.onclick = async () => {
-      document.getElementById("app").style.display = "none";
-      document.getElementById("historyPanel").style.display = "block";
+      if (!loggedIn) return;
+      appDiv.style.display = "none";
+      historyPanel.style.display = "block";
       backLiveBtn.style.display = "inline-block";
       await renderHistory();
     };
 
     backLiveBtn.onclick = () => {
-      document.getElementById("historyPanel").style.display = "none";
-      document.getElementById("app").style.display = "block";
+      if (!loggedIn) return;
+      historyPanel.style.display = "none";
+      appDiv.style.display = "block";
       backLiveBtn.style.display = "none";
     };
 

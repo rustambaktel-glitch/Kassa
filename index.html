@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    h2 { background: red; color: white; padding: 10px; border-radius: 8px; text-align: center; } /* ortaya çəkildi */
+    h2 { background: red; color: white; padding: 10px; border-radius: 8px; text-align: center; }
     table { border-collapse: collapse; width: 100%; margin-top: 10px; }
     th, td { border: 1px solid #555; padding: 6px; text-align: center; }
     th { background: #f0f0f0; }
-    .yekun { background: #4CAF50; color: white; font-weight: bold; font-size: 26px; } /* Balans böyüdüldü */
+    .yekun { background: #4CAF50; color: white; font-weight: bold; font-size: 26px; }
     button { margin: 5px; padding: 6px 12px; cursor: pointer; }
     #login { text-align: center; margin-top: 60px; }
     #app { display: none; }
@@ -18,6 +18,7 @@
     input[type="number"] { padding: 6px; width: 100px; text-align: right; }
     #status { margin:8px 0; padding:8px; border:1px dashed #888; }
     .toolbar { display:flex; gap:10px; align-items:center; margin:8px 0 4px; flex-wrap:wrap; }
+    .ops { display:flex; gap:6px; justify-content:center; }
   </style>
 </head>
 <body>
@@ -115,6 +116,7 @@
       }
     };
 
+    // Sətir DOM-u qur
     function createRow(docId, data, index) {
       const tr = document.createElement("tr");
       tr.dataset.id = docId;
@@ -134,55 +136,56 @@
       tdAcc.appendChild(inpAcc);
       tr.appendChild(tdAcc);
 
-      // 1..5 sütunları
+      // 1..5 sütunları (artıq heç biri avtomatik cəmləmir)
       const numberInputs = [];
       for (let i = 1; i <= 5; i++) {
         const td = document.createElement("td");
         const inp = document.createElement("input");
         inp.type = "number";
         inp.value = (data["n"+i] ?? "") === null ? "" : (data["n"+i] ?? "");
-
-        if (i < 5) {
-          inp.onchange = () => {
-            const v = inp.value === "" ? null : Number(inp.value);
-            updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
-          };
-        } else {
-          inp.onchange = async () => {
-            const lastVal = inp.value;
-            if (lastVal !== "") {
-              const v1 = Number(numberInputs[0].value) || 0;
-              const v2 = Number(numberInputs[1].value) || 0;
-              const v3 = Number(numberInputs[2].value) || 0;
-              const v4 = Number(numberInputs[3].value) || 0;
-              const v5 = Number(inp.value) || 0;
-              const sum = v1 + v2 + v3 + v4 + v5;
-
-              await updateDoc(doc(db, "rows", docId), {
-                n1: sum, n2: null, n3: null, n4: null, n5: null
-              });
-            } else {
-              await updateDoc(doc(db, "rows", docId), { n5: null });
-            }
-          };
-        }
-
+        inp.onchange = () => {
+          const v = inp.value === "" ? null : Number(inp.value);
+          updateDoc(doc(db, "rows", docId), { ["n"+i]: v });
+        };
         td.appendChild(inp);
         tr.appendChild(td);
-        if (i < 5) numberInputs.push(inp);
+        numberInputs.push(inp);
       }
 
-      // Əməliyyat
+      // Əməliyyat: Cəmlə + Sil
       const tdOps = document.createElement("td");
-      const btn = document.createElement("button");
-      btn.textContent = "Sil";
-      btn.onclick = async () => { await deleteDoc(doc(db, "rows", docId)); };
-      tdOps.appendChild(btn);
+      const ops = document.createElement("div");
+      ops.className = "ops";
+
+      const btnSum = document.createElement("button");
+      btnSum.textContent = "Cəmlə";
+      btnSum.onclick = async () => {
+        // cari sətirdəki inputlardan 1..5 dəyərlərini oxu, cəmlə, n1-ə yaz; n2..n5-i boşalt
+        const v1 = Number(numberInputs[0].value) || 0;
+        const v2 = Number(numberInputs[1].value) || 0;
+        const v3 = Number(numberInputs[2].value) || 0;
+        const v4 = Number(numberInputs[3].value) || 0;
+        const v5 = Number(numberInputs[4].value) || 0;
+        const sum = v1 + v2 + v3 + v4 + v5;
+
+        await updateDoc(doc(db, "rows", docId), {
+          n1: sum, n2: null, n3: null, n4: null, n5: null
+        });
+      };
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent = "Sil";
+      btnDel.onclick = async () => { await deleteDoc(doc(db, "rows", docId)); };
+
+      ops.appendChild(btnSum);
+      ops.appendChild(btnDel);
+      tdOps.appendChild(ops);
       tr.appendChild(tdOps);
 
       return tr;
     }
 
+    // Real-time dinləmə
     try {
       const q = query(rowsCol, orderBy("createdAt","asc"));
       onSnapshot(q, (snap) => {
@@ -208,6 +211,7 @@
       setStatus("Firestore Xəta: " + e.message);
     }
 
+    // Yeni sətir
     yeniBtn.onclick = async () => {
       try {
         await addDoc(rowsCol, {

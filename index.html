@@ -6,18 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --dark: #2c3e50;
-            --darker: #34495e;
-            --border: #e0e0e0;
-            --muted: #f9f9f9;
-            --green: #27ae60;
-            --red: #c0392b;
-            --blue: #2980b9;
-            --light-green: #2ecc71;
-            --light-blue: #3498db;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-color: #1a202c;
+            --primary-blue: #3b82f6;
+            --primary-green: #10b981;
+            --primary-red: #ef4444;
+            --border-color: #e2e8f0;
+            --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
         }
 
         * {
@@ -26,11 +26,11 @@
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            background: var(--muted);
-            color: #333;
-            padding: 18px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            padding: 24px;
         }
 
         h2 {
@@ -38,193 +38,193 @@
             font-size: 24px;
             font-weight: 700;
             text-align: center;
-            color: var(--dark);
-            text-transform: uppercase;
+            color: var(--text-color);
         }
 
         .wrap {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
         .card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
             padding: 24px;
         }
-
+        
         .toolbar {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
             margin: 0 0 16px;
             flex-wrap: wrap;
         }
         .toolbar button {
             border: none;
-            background: var(--light-blue);
+            background: var(--primary-blue);
             color: #fff;
-            padding: 10px 16px;
-            border-radius: 8px;
+            padding: 10px 18px;
+            border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
+            transition: all 0.2s;
         }
         .toolbar button:hover {
-            background: #217db5;
-            transform: translateY(-2px);
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
         #logoutBtn {
-            background: var(--red);
+            background: var(--primary-red);
             margin-left: auto;
-        }
-        #logoutBtn:hover {
-            background: #a93226;
         }
 
         #status {
-            margin: 8px 0;
-            padding: 8px 12px;
-            border: 1px dashed var(--border);
-            border-radius: 10px;
-            background: #fafafa;
-            font-size: 13px;
-            color: #555;
+            margin: 8px 0 24px;
+            padding: 10px 16px;
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            background: #eef2f6;
+            font-size: 14px;
+            color: #4a5568;
+            text-align: center;
         }
 
         .modules {
             display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin: 16px 0 20px;
+            gap: 20px;
             justify-content: center;
         }
         .modules button {
-            border: 1px solid var(--border);
-            background: #fff;
-            padding: 16px 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 18px 28px;
             border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
-            transition: box-shadow 0.2s, transform 0.2s;
+            transition: all 0.2s;
         }
         .modules button:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background: var(--bg-color);
             transform: translateY(-2px);
+            box-shadow: var(--shadow-light);
         }
-
+        
         table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-color);
         }
         thead th {
             position: sticky;
             top: 0;
             z-index: 1;
-            background: var(--dark);
-            color: #ffffff;
+            background: #cbd5e1;
+            color: #2d3748;
             padding: 12px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
         }
         th, td {
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-color);
             text-align: center;
-            padding: 8px;
+            padding: 10px 8px;
         }
-        th:nth-child(1), td:nth-child(1) { width: 50px; background: var(--darker); color: #fff; font-weight: 700; }
-        th:nth-child(2), td:nth-child(2) { width: 220px; text-align: left; padding: 8px 12px; }
-        th:nth-child(8), td:nth-child(8) { width: 240px; }
-        tbody tr:nth-child(even) { background: #fcfcfc; }
-        tbody tr:hover { background: #f5faff; transition: background 0.12s; }
+        th:nth-child(1), td:nth-child(1) { width: 45px; }
+        th:nth-child(2), td:nth-child(2) { width: 200px; text-align: left; padding: 10px 12px; }
+        th:nth-child(8), td:nth-child(8) { width: 220px; }
+        tbody tr:nth-child(even) { background: #f7fafc; }
+        tbody tr:hover { background: #eff6ff; transition: background 0.12s; }
 
         td input {
             width: 98%;
             padding: 8px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             text-align: center;
-            background: #fff;
-            border: 1px solid var(--border);
+            background: transparent;
+            border: 1px solid transparent;
             border-radius: 6px;
+            transition: border-color 0.2s;
         }
         td input:focus {
             outline: none;
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
+            border: 1px solid var(--primary-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            background: var(--card-bg);
         }
-        td input.neg { color: var(--red); }
-        td input.pos { color: var(--green); }
+        td input.neg { color: var(--primary-red); }
+        td input.pos { color: var(--primary-green); }
 
         .ops {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             justify-content: center;
             flex-wrap: wrap;
         }
         .ops button {
-            border-radius: 6px;
+            border-radius: 8px;
             border: none;
             color: #fff;
             padding: 8px 12px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s;
         }
-        .ops button:hover { transform: translateY(-1px); }
-        .ops button.sum { background: var(--blue); }
-        .ops button.undo { background: #888; }
-        .ops button.del { background: var(--red); }
+        .ops button:hover { transform: scale(1.05); }
+        .ops button.sum { background: var(--primary-blue); }
+        .ops button.undo { background: #94a3b8; }
+        .ops button.del { background: var(--primary-red); }
 
         .balance-panel {
             text-align: right;
-            padding: 12px 20px;
-            background: var(--green);
+            padding: 16px 24px;
+            background: var(--primary-green);
             color: #fff;
-            font-size: 26px;
+            font-size: 28px;
             font-weight: bold;
-            border-radius: 10px;
-            margin-top: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            margin-top: 24px;
+            box-shadow: var(--shadow-md);
         }
 
         #login {
             text-align: center;
-            margin-top: 36px;
+            margin-top: 48px;
         }
-        #login h2 { color: var(--darker); }
+        #login h2 { color: var(--text-color); }
         #login input {
             font-size: 16px;
-            padding: 12px 16px;
-            width: 280px;
-            margin: 8px 0;
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            padding: 14px 20px;
+            width: 320px;
+            margin: 12px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-color);
         }
         #login input:focus {
             outline: none;
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.2);
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         #login button {
             font-size: 18px;
-            padding: 12px 24px;
-            border-radius: 10px;
-            background: var(--light-green);
+            padding: 14px 28px;
+            border-radius: 12px;
+            background: var(--primary-green);
             color: #fff;
             border: none;
-            min-width: 180px;
+            min-width: 200px;
             cursor: pointer;
             font-weight: 600;
             transition: background 0.2s;
+            margin-top: 8px;
         }
         #login button:hover {
-            background: #27a260;
+            background: #059669;
         }
 
         #topToolbar, #appHome, #appKassa, #historyPanel {
@@ -232,26 +232,28 @@
         }
         
         .snap {
-            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 16px;
+            background: var(--card-bg);
+            padding: 20px;
             margin: 16px 0;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-light);
         }
         .snap h4 {
             margin-top: 0;
             margin-bottom: 12px;
             font-size: 16px;
-            color: var(--darker);
-            border-bottom: 1px solid var(--border);
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 8px;
         }
         .snap table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
+            border-radius: 8px;
         }
+        .snap table th {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
     </style>
 </head>
 <body>
@@ -269,7 +271,7 @@
             <input type="text" id="user" placeholder="İstifadəçi adı"><br>
             <input type="password" id="pass" placeholder="Şifrə"><br>
             <button onclick="giris()">Daxil ol</button>
-            <p id="error" style="color:var(--red); font-weight: 600; margin-top: 12px;"></p>
+            <p id="error" style="color:var(--primary-red); font-weight: 600; margin-top: 12px;"></p>
         </div>
 
         <div id="appHome" class="card">
@@ -283,7 +285,7 @@
             <h2>KASSA HESABATI</h2>
             <div class="toolbar">
                 <button id="homeBtn">Ana səhifə</button>
-                <button id="yeniBtn" style="background: var(--green);">+ Sətir əlavə et</button>
+                <button id="yeniBtn" style="background: var(--primary-green);">+ Sətir əlavə et</button>
             </div>
             <div id="liveWrap">
                 <table>
@@ -453,8 +455,7 @@
 
         function renderFromDocs(docs) {
             tbody.innerHTML = "";
-            let total = 0,
-                idx = 0;
+            let total = 0, idx = 0;
             docs.forEach(({ id, data }) => {
                 const tr = createRow(id, data, idx);
                 tbody.appendChild(tr);
@@ -509,9 +510,7 @@
                     if (!loggedIn) return;
                     const v = inp.value === "" ? null : Number(inp.value);
                     setVisualClass(inp, v);
-                    await updateDoc(doc(db, "rows", docId), {
-                        ["n" + i]: v
-                    });
+                    await updateDoc(doc(db, "rows", docId), { ["n" + i]: v });
                     await fetchAndRender();
                     await saveSnapshot();
                 };
@@ -666,11 +665,11 @@
 
         async function renderHistory() {
             try {
-                snapshotsDiv.innerHTML = "<div style='text-align: center;'>Yüklənir...</div>";
+                snapshotsDiv.innerHTML = "<div style='text-align: center; color: #6b7280;'>Yüklənir...</div>";
                 const qSnaps = query(snapsCol, orderBy("createdAt", "desc"));
                 const snap = await getDocs(qSnaps);
                 if (snap.empty) {
-                    snapshotsDiv.innerHTML = "<div style='text-align: center; color: #888;'><i>Hələ tarixçə yoxdur.</i></div>";
+                    snapshotsDiv.innerHTML = "<div style='text-align: center; color: #9ca3af;'><i>Hələ tarixçə yoxdur.</i></div>";
                     return;
                 }
                 const parts = [];
